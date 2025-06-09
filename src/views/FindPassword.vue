@@ -52,21 +52,34 @@
   }
   
   const validateField = (field) => {
-    errors[field] = validationRules[field](form[field]) || ''
+    const rule = validationRules[field]
+    if (rule) {
+      const error = rule(form[field])
+      errors[field] = typeof error === 'string' ? error : ''
+    }
   }
   /* 这里重置密码的方法存疑*/
   const handleSubmit = async () => {
-    validateField('email')
-    if (errors.email) return
-
+    isSubmitting.value = true
+    resetError.value = ''
+    successMessage.value = ''
+    
+    // 验证所有字段
+    for (const field in form) {
+      validateField(field)
+      if (errors[field]) {
+        isSubmitting.value = false
+        return
+      }
+    }
+    
     try {
-      isSubmitting.value = true
-      await authStore.sendResetEmail(form.email)
-      successMessage.value = '重置链接已发送至您的邮箱'
-      resetError.value = ''
+      // 调用重置密码 API
+      const response = await authStore.requestReset(form.email)
+      successMessage.value = '重置邮件已发送，请检查您的邮箱。'
+      form.email = '' // 清空输入框
     } catch (error) {
-      resetError.value = error.message || '发送重置邮件失败'
-      successMessage.value = ''
+      resetError.value = error.response.data || '发送重置邮件失败，请稍后再试。'
     } finally {
       isSubmitting.value = false
     }

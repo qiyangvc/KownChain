@@ -129,13 +129,13 @@
       return
     }
       isSubmitting.value = true
-      const response = await authStore.register({userName:form.userName, password:form.password, emailbox:form.email})
+      const response = await authStore.register({userName:form.userName, password:form.password, email:form.email})
       console.log(response)
       if (response.data.success){
         router.push('/login')
       }
     } catch (error) {
-      registerError.value = error.message || '注册失败'
+      registerError.value = error.response.data || '注册失败'
     } finally {
       isSubmitting.value = false
     }

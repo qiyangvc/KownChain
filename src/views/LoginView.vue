@@ -97,7 +97,7 @@
     }
     isSubmitting.value = true
     loginError.value = null
-    //const response = await authStore.login(form)
+    const response = await authStore.login(form)
     form.password = ''
     const redirectPath = '/mainweb/resource'
     router.push(redirectPath)

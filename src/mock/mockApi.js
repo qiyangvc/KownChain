@@ -67,40 +67,74 @@ export const mockApi = {
   async login(credentials) {
     // 模拟网络延迟
     await delay(500);
-    
+    let key =0;
     // 检查用户名和密码
-    if (credentials.userName == userData.userName && credentials.password == userData.password) {
+  while (key< userData.length) {
+if (credentials.userName == userData[key].userName && credentials.password == userData[key].password) {
       return {
-        userID: userData.userID,
+        userID: userData[key].userID,
         data: { 
           success: true,
           message: '登录成功'
         },
         status: 200
       };
-    } else {
-      throw { response: { status: 401, data: 'Invalid credentials' } };
     }
+    key++;
+    }
+
+      throw { response: { status: 401, data: 'Invalid credentials' } };
+    
   },
   // 注册
-  async register(userData) {
+  async register(userD) {
     // 模拟网络延迟
     await delay(500);
-    
-    // 检查用户名和密码
-    if (userData.userName && userData.password) {
-      return {
-        data: { 
-          success: true,
-          message: '注册成功'
-        },
-        status: 200
-      };
-    } else {
-      throw { response: { status: 400, data: 'Invalid registration data' } };
+    // 邮箱是否已注册
+    const emailExists = userData.find(user => user.email === userD.email);
+    if (emailExists) {
+      throw { response: { status: 409, data: '邮箱已注册' } };
     }
-  }
-  ,
+    
+    // 检查用户名是否已存在
+    const existingUser = userData.find(user => user.userName === userD.userName);
+    if (existingUser) {
+      throw { response: { status: 409, data: '用户名已存在' } };
+    }
+    
+    // 模拟成功注册
+    const newUser = {
+      userID: userData.length + 1,
+      ...userD
+    };
+    userData.push(newUser);
+    
+    return {
+      data: { 
+        success: true, 
+        message: '注册成功'
+      },
+      status: 201
+    };
+  },
+  // 请求重置密码
+  async requestReset(email) {
+    // 模拟网络延迟
+    await delay(500);
+    // 检查邮箱是否存在
+    const user = userData.find(user => user.email === email);
+    if (!user) {
+      throw { response: { status: 404, data: '邮箱未注册' } };
+    }
+    // 模拟成功响应
+    return {
+      data: { 
+        success: true, 
+        message: '重置密码请求已发送，请检查您的邮箱'
+      },
+      status: 200
+    };
+  },
   // 保存文件内容
   saveFileContent(url, content) {
     return new Promise((resolve) => {
