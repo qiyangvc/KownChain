@@ -17,4 +17,6 @@ public class UserVO implements Serializable {
     private BigInteger userid;
     private String username;
     private String mailbox;
+
+    private String token;
 }

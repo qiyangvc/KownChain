@@ -1,6 +1,9 @@
 package knowchain.server.controller;
 
+import knowchain.common.constant.JwtClaimsConstant;
+import knowchain.common.properties.JwtProperties;
 import knowchain.common.result.Result;
+import knowchain.common.utils.JwtUtil;
 import knowchain.pojo.DTO.UserDTO;
 import knowchain.pojo.VO.UserVO;
 import knowchain.pojo.entity.User;
@@ -12,6 +15,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
+import java.util.Map;
+
+
+import static com.fasterxml.jackson.databind.type.LogicalType.Map;
+
 @RestController
 @RequestMapping("/user")
 @Slf4j
@@ -19,6 +28,7 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
 
     /**
      * 登录
@@ -34,18 +44,22 @@ public class UserController {
 
         System.out.println("controller: "+user);
 
-        // TODO 登录成功后，生成jwt令牌
-
-
+        // 登录成功后，生成jwt令牌
+        Map<String, Object> claims = new HashMap<>();
+        claims.put(JwtClaimsConstant.USER_ID, user.getUserid());
+        JwtProperties jwtProperties = new JwtProperties();
+        String token = JwtUtil.createJWT(jwtProperties.getUserSecretKey(), jwtProperties.getUserTtl(), claims);
 
 
         UserVO userVO = UserVO.builder()
                 .userid(user.getUserid())
                 .username(user.getUsername())
                 .mailbox(user.getMailbox())
+                .token(token)
                 .build();
 
         return Result.success(userVO);
-
     }
+
+
 }

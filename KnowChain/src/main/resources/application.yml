@@ -16,3 +16,11 @@ mybatis:
   configuration:
     #开启驼峰命名
     map-underscore-to-camel-case: true
+
+#knowchain:
+#  jwt:
+#    # 密钥
+#    user-secret-key: knowchain
+#    # 过期时间
+#    user-ttl: 36000000
+#    user-token-name: authentication
