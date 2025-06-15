@@ -1,6 +1,9 @@
 <template>
   <div class="ddl-queue-container">
-    <h2>DDL卡片队列</h2>
+    <div class="ddl-header-row">
+      <h2>DDL卡片队列</h2>
+      <button class="add-btn" @click="showModal = true" v-if="!adding">添加DDL卡片</button>
+    </div>
     <div class="ddl-list-header">
       <div class="ddl-card-list">
         <div v-for="(card, idx) in sortedCards" :key="card.id" class="ddl-card" :style="{ background: getCardColor(card.deadline) }">
@@ -23,9 +26,8 @@
           </div>
         </div>
       </div>
-      <button class="add-btn" @click="showModal = true" v-if="!adding">添加DDL卡片</button>
     </div>
-    <!-- 弹窗 -->
+    <!-- 弹窗部分保持不变 -->
     <div v-if="showModal" class="modal-mask">
       <div class="modal-wrapper">
         <div class="modal-container">
@@ -145,6 +147,25 @@ const sortedCards = computed(() => {
   margin: 0 auto;
   padding: 24px 0;
 }
+.ddl-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.add-btn {
+  background: #4a6cf7;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  height: 40px;
+  align-self: center;
+  white-space: nowrap;
+  margin-bottom: 0;
+}
 .ddl-list-header {
   display: flex;
   flex-direction: row;
@@ -154,35 +175,24 @@ const sortedCards = computed(() => {
 .ddl-card-list {
   display: flex;
   flex-direction: row;
-  gap: 24px;
+  gap: 12px;                /* 缩小卡片间距 */
+  padding-bottom: 6px;      /* 缩小底部间距 */
+  margin-bottom: 4px;       /* 缩小底部外边距 */
   overflow-x: auto;
   padding-bottom: 12px;
   margin-bottom: 8px;
   width: 100%;
 }
-.add-btn {
-  background: #4a6cf7;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 20px;
-  font-size: 16px;
-  margin-bottom: 18px;
-  cursor: pointer;
-  height: 48px;
-  align-self: center;
-  white-space: nowrap;
-}
 .ddl-card {
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  padding: 18px 16px 12px 16px;
-  margin-bottom: 18px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  padding: 10px 8px 8px 8px;   /* 缩小内边距 */
+  margin-bottom: 10px;         /* 缩小卡片底部间距 */
   position: relative;
   transition: background 0.3s;
-  min-width: 320px;
-  max-width: 360px;
-  flex: 0 0 320px;
+  min-width: 160px;            /* 缩小宽度 */
+  max-width: 180px;
+  flex: 0 0 160px;
 }
 .ddl-title {
   font-weight: 600;

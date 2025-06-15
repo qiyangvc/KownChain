@@ -13,9 +13,14 @@
             <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
           </svg>
         </button>
+        <button class="today-btn" @click="$emit('date-selected', new Date())">今天</button>
       </div>
     </div>
-    
+    <!-- 新增：显示年月日和星期 -->
+    <div class="calendar-date-info">
+      <div class="calendar-date-title">{{ selectedDateFormatted }}</div>
+      <div class="calendar-date-week">{{ getDayOfWeek(props.selectedDate) }}</div>
+    </div>
     <div class="weekdays">
       <div v-for="day in ['日', '一', '二', '三', '四', '五', '六']" :key="day" class="weekday">
         {{ day }}
@@ -111,6 +116,19 @@ const getDayEvents = (date) => {
   // 返回任务颜色数组（最多3个）
   return dayTasks.slice(0, 3).map(task => task.color);
 };
+
+// 新增：格式化年月日
+const selectedDateFormatted = computed(() => {
+  const year = props.selectedDate.getFullYear();
+  const month = (props.selectedDate.getMonth() + 1).toString().padStart(2, '0');
+  const day = props.selectedDate.getDate().toString().padStart(2, '0');
+  return `${year}年${month}月${day}日`;
+});
+// 新增：获取星期几
+const getDayOfWeek = (date) => {
+  const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+  return days[date.getDay()];
+};
 </script>
 
 <style scoped>
@@ -120,6 +138,12 @@ const getDayEvents = (date) => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   padding: 15px;
   transition: all 0.3s ease;
+  /* 等比例缩小为原来的0.7倍，可根据需要调整 */
+  transform: scale(1);
+  transform-origin: top left;
+  width: 100%;
+  /* 防止缩小时溢出 */
+  max-width: none;
 }
 
 .calendar-header {
@@ -159,6 +183,38 @@ const getDayEvents = (date) => {
 
 .action-btn svg {
   fill: #4a5568;
+}
+
+.today-btn {
+  background-color: #1d4ed8;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.today-btn:hover {
+  background-color: #1e40af;
+}
+
+.calendar-date-info {
+  text-align: center;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 10px;
+}
+
+.calendar-date-title {
+  font-size: 20px;
+  color: #1e293b;
+  font-weight: bold;
+}
+
+.calendar-date-week {
+  font-size: 15px;
+  color: #64748b;
 }
 
 .weekdays {

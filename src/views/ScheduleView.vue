@@ -1,82 +1,41 @@
 <template>
   <div class="schedule-container">
-    <div class="header">
-      <h1>日程管理</h1>
+    <h1>日程管理</h1>
+    <div class="calendar-panel">
+      <CalendarComponent 
+        :current-date="currentDate"
+        :selected-date="selectedDate"
+        :tasks="tasks"
+        @date-selected="selectDate"
+        @prev-month="prevMonth"
+        @next-month="nextMonth"
+      />
     </div>
     <div class="main-content">
-      <!-- 左侧待办 -->
       <div class="content">
-        <!-- DDL卡片队列放在待办事项上方 -->
         <DDLQueue />
-        <div class="task-controls">
-          <div class="add-task">
-            <div class="add-task-inputs">
-              <input 
-                type="text" 
-                v-model="newTask" 
-                placeholder="添加新任务..." 
-                @keyup.enter="addTask"
-              >
-              <input 
-                type="time"
-                v-model="newTaskStart"
-                style="width: 110px; margin-left: 10px;"
-                placeholder="开始时间"
-              >
-              <span style="margin: 0 6px;">-</span>
-              <input 
-                type="time"
-                v-model="newTaskEnd"
-                style="width: 110px;"
-                placeholder="结束时间"
-              >
-            </div>
-            <textarea
-              v-model="newTaskDesc"
-              placeholder="备注（可选）"
-              class="add-task-desc"
-              rows="2"
-              style="margin: 10px 20px 0 20px; resize: vertical;"
-            ></textarea>
-            <div class="add-task-btn-row">
-              <button @click="addTask">添加</button>
-            </div>
-          </div>
-          <div class="date-navigation">
-            <button class="nav-btn" @click="prevMonth">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
-              </svg>
-            </button>
-            <div class="current-date">{{ currentMonth }} {{ currentYear }}</div>
-            <button class="nav-btn" @click="nextMonth">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
-              </svg>
-            </button>
-            <button class="today-btn" @click="goToToday">今天</button>
-          </div>
-        </div>
+      </div>
+    </div>
+    <!-- 横向分布的当日/次日待办 -->
+    <div class="todo-row">
+      <div class="todo-col">
+        <h2 class="todo-title">当日待办</h2>
         <TaskList 
-          :tasks="filteredTasks"
+          :tasks="selectedDayTasks"
           @delete-task="deleteTask"
           @toggle-complete="toggleComplete"
           @update-task="updateTask"
+          @add-task="addTask"
         />
       </div>
-      <!-- 右侧日历 -->
-      <div class="calendar-panel">
-        <div class="date-info merged-date-info">
-          <h2>{{ selectedDateFormatted }}</h2>
-          <p>{{ getDayOfWeek(selectedDate) }}</p>
-        </div>
-        <CalendarComponent 
-          :current-date="currentDate"
-          :selected-date="selectedDate"
-          :tasks="tasks"
-          @date-selected="selectDate"
-          @prev-month="prevMonth"
-          @next-month="nextMonth"
+      <div class="todo-col">
+        <h2 class="todo-title">次日待办</h2>
+        <TaskList 
+          :tasks="nextDayTasks"
+          @delete-task="deleteTask"
+          @toggle-complete="toggleComplete"
+          @update-task="updateTask"
+          @add-task="addTask"
         />
       </div>
     </div>
@@ -143,6 +102,24 @@ const filteredTasks = computed(() => {
     });
 });
 
+// 当日任务
+const selectedDayTasks = computed(() => {
+  const selectedStr = selectedDate.value.toDateString();
+  return tasks.value
+    .filter(task => new Date(task.date).toDateString() === selectedStr)
+    .sort((a, b) => (a.start || a.time) < (b.start || b.time) ? -1 : 1);
+});
+
+// 次日任务
+const nextDayTasks = computed(() => {
+  const nextDay = new Date(selectedDate.value);
+  nextDay.setDate(nextDay.getDate() + 1);
+  const nextDayStr = nextDay.toDateString();
+  return tasks.value
+    .filter(task => new Date(task.date).toDateString() === nextDayStr)
+    .sort((a, b) => (a.start || a.time) < (b.start || b.time) ? -1 : 1);
+});
+
 // 切换月份
 const prevMonth = () => {
   currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1);
@@ -164,31 +141,8 @@ const selectDate = (date) => {
 };
 
 // 添加任务
-const addTask = () => {
-  if (newTask.value.trim() === '' || !newTaskStart.value || !newTaskEnd.value) return;
-
-  if (newTaskStart.value >= newTaskEnd.value) {
-    alert('开始时间必须早于结束时间');
-    return;
-  }
-
-  const colors = ['#4a6cf7', '#ff9800', '#4caf50', '#e91e63', '#9c27b0'];
-
-  tasks.value.push({
-    id: Date.now(),
-    title: newTask.value,
-    start: newTaskStart.value,
-    end: newTaskEnd.value,
-    date: new Date(selectedDate.value),
-    description: newTaskDesc.value, // 保存备注
-    completed: false,
-    color: colors[Math.floor(Math.random() * colors.length)]
-  });
-
-  newTask.value = '';
-  newTaskStart.value = '09:00';
-  newTaskEnd.value = '10:00';
-  newTaskDesc.value = ''; // 清空备注
+const addTask = (task) => {
+  tasks.value.push(task);
 };
 
 // 删除任务
@@ -219,25 +173,14 @@ onMounted(() => {
 .schedule-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 8px 20px 20px 20px; /* 顶部padding由20px改为8px或0，更紧凑 */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+  padding-right: 340px; /* 预留日历宽度 */
 }
 
 .header {
-  margin-bottom: 20px;
-  border-bottom: 1px solid #eaeaea;
-  padding-bottom: 10px;
-}
-
-.header-left {
-  flex: 1;
-  max-width: 60%;
-}
-
-h1 {
-  color: #2d3748;
-  font-size: 28px;
-  margin: 0 0 15px 0;
+  display: none; /* 隐藏原有 header 区域 */
 }
 
 .date-info h2 {
@@ -407,18 +350,58 @@ h1 {
 }
 
 .calendar-panel {
-  width: 340px;
-  min-width: 260px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  padding: 18px 12px 18px 12px;
-  height: fit-content;
+  position: fixed;      /* 关键：fixed 定位到屏幕 */
+  top: 0;               /* 顶部对齐 */
+  right: 0;             /* 右侧对齐 */
+  width: 320px;
+  min-width: 220px;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+  z-index: 100;
+  display: block;
 }
 
 .content {
   flex: 1;
   min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  padding: 4px 4px 2px 4px;    /* 更小的内边距 */
+  margin-bottom: 8px;            /* 更小的下间距 */
+}
+
+.todo-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #2d3748;
+  margin: 18px 0 12px 0;
+}
+
+.todo-row {
+  display: flex;
+  gap: 16px;                      /* 缩小间距 */
+  margin-top: 16px;               /* 缩小与上方的距离 */
+  margin-bottom: 16px;            /* 缩小与下方的距离 */
+  justify-content: space-between;
+}
+
+.todo-col {
+  flex: 1 1 0;
+  min-width: 320px;
+  max-width: 600px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  padding: 8px 8px 4px 8px;      /* 更小的内边距 */
+  margin: 0 2px;                 /* 更小的左右间距 */
+  display: flex;
+  flex-direction: column;
 }
 
 /* 响应式：小屏幕上下布局 */
@@ -431,6 +414,14 @@ h1 {
     width: 100%;
     min-width: 0;
     margin-bottom: 10px;
+  }
+  .todo-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .todo-col {
+    max-width: 100%;
+    margin: 0;
   }
 }
 
