@@ -13,11 +13,24 @@
       :style="{ borderLeftColor: task.color }"
     >
       <div class="task-content">
-        <div class="task-info">
+        <div class="task-info" v-if="editId !== task.id">
           <div class="task-title">{{ task.title }}</div>
-          <div class="task-time">{{ formatTime(task.time) }}</div>
+          <div class="task-time">
+            {{ task.start || task.time }}<span v-if="task.start"> - {{ task.end }}</span>
+          </div>
+        </div>
+        <!-- 编辑模式 -->
+        <div class="task-info" v-else>
+          <input v-model="editTask.title" class="edit-input" />
+          <input type="time" v-model="editTask.start" class="edit-input" style="width:90px" />
+          <span style="margin:0 4px;">-</span>
+          <input type="time" v-model="editTask.end" class="edit-input" style="width:90px" />
+          <textarea v-model="editTask.description" class="edit-textarea" rows="2"></textarea>
         </div>
         <div class="task-actions">
+          <button v-if="editId !== task.id" @click="startEdit(task)">编辑</button>
+          <button v-else @click="saveEdit(task)">保存</button>
+          <button v-if="editId === task.id" @click="cancelEdit">取消</button>
           <button @click="$emit('toggle-complete', task)" class="complete-btn">
             <svg v-if="task.completed" viewBox="0 0 24 24" width="20" height="20">
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
@@ -33,7 +46,7 @@
           </button>
         </div>
       </div>
-      <div v-if="task.description" class="task-description">
+      <div v-if="editId !== task.id && task.description" class="task-description">
         {{ task.description }}
       </div>
     </div>
@@ -41,19 +54,36 @@
 </template>
 
 <script setup>
-defineProps({
+import { ref } from 'vue';
+
+const props = defineProps({
   tasks: {
     type: Array,
     required: true
   }
 });
 
-defineEmits(['delete-task', 'toggle-complete']);
+const emit = defineEmits(['delete-task', 'toggle-complete', 'update-task']);
 
-// 格式化时间
-const formatTime = (time) => {
-  return time;
-};
+const editId = ref(null);
+const editTask = ref({});
+
+function startEdit(task) {
+  editId.value = task.id;
+  editTask.value = { ...task };
+}
+function saveEdit(task) {
+  // 校验开始时间必须早于结束时间
+  if (editTask.value.start && editTask.value.end && editTask.value.start >= editTask.value.end) {
+    alert('开始时间必须早于结束时间');
+    return;
+  }
+  emit('update-task', { ...editTask.value });
+  editId.value = null;
+}
+function cancelEdit() {
+  editId.value = null;
+}
 </script>
 
 <style scoped>
@@ -131,6 +161,16 @@ const formatTime = (time) => {
   font-size: 14px;
   padding-top: 8px;
   border-top: 1px solid #f1f5f9;
+}
+
+.edit-input, .edit-textarea {
+  margin: 4px 0;
+  font-size: 15px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.edit-textarea {
+  resize: vertical;
 }
 
 .empty-tasks {

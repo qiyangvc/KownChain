@@ -1,57 +1,84 @@
 <template>
   <div class="schedule-container">
     <div class="header">
-      <div class="header-left">
-        <h1>日程管理</h1>
-        <div class="date-info">
+      <h1>日程管理</h1>
+    </div>
+    <div class="main-content">
+      <!-- 左侧待办 -->
+      <div class="content">
+        <!-- DDL卡片队列放在待办事项上方 -->
+        <DDLQueue />
+        <div class="task-controls">
+          <div class="add-task">
+            <div class="add-task-inputs">
+              <input 
+                type="text" 
+                v-model="newTask" 
+                placeholder="添加新任务..." 
+                @keyup.enter="addTask"
+              >
+              <input 
+                type="time"
+                v-model="newTaskStart"
+                style="width: 110px; margin-left: 10px;"
+                placeholder="开始时间"
+              >
+              <span style="margin: 0 6px;">-</span>
+              <input 
+                type="time"
+                v-model="newTaskEnd"
+                style="width: 110px;"
+                placeholder="结束时间"
+              >
+            </div>
+            <textarea
+              v-model="newTaskDesc"
+              placeholder="备注（可选）"
+              class="add-task-desc"
+              rows="2"
+              style="margin: 10px 20px 0 20px; resize: vertical;"
+            ></textarea>
+            <div class="add-task-btn-row">
+              <button @click="addTask">添加</button>
+            </div>
+          </div>
+          <div class="date-navigation">
+            <button class="nav-btn" @click="prevMonth">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
+              </svg>
+            </button>
+            <div class="current-date">{{ currentMonth }} {{ currentYear }}</div>
+            <button class="nav-btn" @click="nextMonth">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+              </svg>
+            </button>
+            <button class="today-btn" @click="goToToday">今天</button>
+          </div>
+        </div>
+        <TaskList 
+          :tasks="filteredTasks"
+          @delete-task="deleteTask"
+          @toggle-complete="toggleComplete"
+          @update-task="updateTask"
+        />
+      </div>
+      <!-- 右侧日历 -->
+      <div class="calendar-panel">
+        <div class="date-info merged-date-info">
           <h2>{{ selectedDateFormatted }}</h2>
           <p>{{ getDayOfWeek(selectedDate) }}</p>
         </div>
-      </div>
-      
-      <div class="calendar-float">
         <CalendarComponent 
           :current-date="currentDate"
           :selected-date="selectedDate"
           :tasks="tasks"
           @date-selected="selectDate"
+          @prev-month="prevMonth"
+          @next-month="nextMonth"
         />
       </div>
-    </div>
-
-    <div class="content">
-      <div class="task-controls">
-        <div class="add-task">
-          <input 
-            type="text" 
-            v-model="newTask" 
-            placeholder="添加新任务..." 
-            @keyup.enter="addTask"
-          >
-          <button @click="addTask">添加</button>
-        </div>
-        
-        <div class="date-navigation">
-          <button class="nav-btn" @click="prevMonth">
-            <svg viewBox="0 0 24 24" width="20" height="20">
-              <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
-            </svg>
-          </button>
-          <div class="current-date">{{ currentMonth }} {{ currentYear }}</div>
-          <button class="nav-btn" @click="nextMonth">
-            <svg viewBox="0 0 24 24" width="20" height="20">
-              <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
-            </svg>
-          </button>
-          <button class="today-btn" @click="goToToday">今天</button>
-        </div>
-      </div>
-
-      <TaskList 
-        :tasks="filteredTasks"
-        @delete-task="deleteTask"
-        @toggle-complete="toggleComplete"
-      />
     </div>
   </div>
 </template>
@@ -60,12 +87,16 @@
 import { ref, computed, onMounted } from 'vue';
 import CalendarComponent from '@/components/Calendar.vue';
 import TaskList from '@/components/TaskList.vue';
+import DDLQueue from '@/components/DDLQueue.vue'; // 新增引入
 
 // 当前日期
 const today = new Date();
 const currentDate = ref(new Date());
 const selectedDate = ref(new Date());
 const newTask = ref('');
+const newTaskStart = ref('09:00');
+const newTaskEnd = ref('10:00');
+const newTaskDesc = ref(''); // 新增
 
 // 任务数据
 const tasks = ref([
@@ -88,7 +119,7 @@ const selectedDateFormatted = computed(() => {
   const year = selectedDate.value.getFullYear();
   const month = (selectedDate.value.getMonth() + 1).toString().padStart(2, '0');
   const day = selectedDate.value.getDate().toString().padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return `${year}年${month}月${day}日`;
 });
 
 // 获取星期几
@@ -134,21 +165,30 @@ const selectDate = (date) => {
 
 // 添加任务
 const addTask = () => {
-  if (newTask.value.trim() === '') return;
-  
+  if (newTask.value.trim() === '' || !newTaskStart.value || !newTaskEnd.value) return;
+
+  if (newTaskStart.value >= newTaskEnd.value) {
+    alert('开始时间必须早于结束时间');
+    return;
+  }
+
   const colors = ['#4a6cf7', '#ff9800', '#4caf50', '#e91e63', '#9c27b0'];
-  
+
   tasks.value.push({
     id: Date.now(),
     title: newTask.value,
-    time: '09:00',
+    start: newTaskStart.value,
+    end: newTaskEnd.value,
     date: new Date(selectedDate.value),
-    description: '',
+    description: newTaskDesc.value, // 保存备注
     completed: false,
     color: colors[Math.floor(Math.random() * colors.length)]
   });
-  
+
   newTask.value = '';
+  newTaskStart.value = '09:00';
+  newTaskEnd.value = '10:00';
+  newTaskDesc.value = ''; // 清空备注
 };
 
 // 删除任务
@@ -159,6 +199,14 @@ const deleteTask = (id) => {
 // 切换任务完成状态
 const toggleComplete = (task) => {
   task.completed = !task.completed;
+};
+
+// 更新任务
+const updateTask = (updatedTask) => {
+  const idx = tasks.value.findIndex(t => t.id === updatedTask.id);
+  if (idx !== -1) {
+    tasks.value[idx] = { ...tasks.value[idx], ...updatedTask };
+  }
 };
 
 onMounted(() => {
@@ -176,17 +224,14 @@ onMounted(() => {
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
+  margin-bottom: 20px;
   border-bottom: 1px solid #eaeaea;
-  position: relative;
+  padding-bottom: 10px;
 }
 
 .header-left {
   flex: 1;
+  max-width: 60%;
 }
 
 h1 {
@@ -211,12 +256,29 @@ h1 {
   position: absolute;
   top: 0;
   right: 0;
-  width: 340px;
+  width: 320px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   padding: 15px;
   z-index: 10;
+}
+
+.merged-date-info {
+  margin-bottom: 10px;
+  text-align: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 10px;
+}
+
+.calendar-float .date-info h2 {
+  font-size: 22px;
+  margin-bottom: 2px;
+}
+
+.calendar-float .date-info p {
+  font-size: 15px;
+  color: #64748b;
 }
 
 .task-controls {
@@ -227,21 +289,48 @@ h1 {
 }
 
 .add-task {
-  flex: 1;
   display: flex;
+  flex-direction: column;
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   max-width: 500px;
+  padding: 10px 0;
+}
+
+.add-task-inputs {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 0;
 }
 
 .add-task input {
   flex: 1;
   border: none;
-  padding: 15px 20px;
+  padding: 15px 10px;
   font-size: 16px;
   outline: none;
+}
+
+.add-task-desc {
+  width: 100%;
+  border: none;
+  border-top: 1px solid #f1f5f9;
+  padding: 10px;
+  font-size: 15px;
+  background: #f8fafc;
+  border-radius: 0 0 8px 8px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.add-task-btn-row {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 20px 10px 20px;
 }
 
 .add-task button {
@@ -252,6 +341,8 @@ h1 {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  margin-left: 0;
+  align-self: flex-end;
 }
 
 .add-task button:hover {
@@ -310,10 +401,47 @@ h1 {
   background: #e2e8f0;
 }
 
+.main-content {
+  display: flex;
+  gap: 32px;
+}
+
+.calendar-panel {
+  width: 340px;
+  min-width: 260px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 18px 12px 18px 12px;
+  height: fit-content;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 响应式：小屏幕上下布局 */
+@media (max-width: 900px) {
+  .main-content {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .calendar-panel {
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 10px;
+  }
+}
+
 @media (max-width: 992px) {
   .header {
     flex-direction: column;
     gap: 20px;
+  }
+  
+  .header-left {
+    max-width: 100%;
   }
   
   .calendar-float {
@@ -321,6 +449,8 @@ h1 {
     width: 100%;
     max-width: 100%;
     margin-top: 15px;
+    right: auto;
+    top: auto;
   }
   
   .task-controls {

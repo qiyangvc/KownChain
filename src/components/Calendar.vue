@@ -1,5 +1,21 @@
 <template>
   <div class="calendar-container">
+    <div class="calendar-header">
+      <div class="calendar-title">日历</div>
+      <div class="calendar-actions">
+        <button class="action-btn" @click="$emit('prev-month')">
+          <svg viewBox="0 0 24 24" width="16" height="16">
+            <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
+          </svg>
+        </button>
+        <button class="action-btn" @click="$emit('next-month')">
+          <svg viewBox="0 0 24 24" width="16" height="16">
+            <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    
     <div class="weekdays">
       <div v-for="day in ['日', '一', '二', '三', '四', '五', '六']" :key="day" class="weekday">
         {{ day }}
@@ -49,7 +65,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['date-selected']);
+defineEmits(['date-selected', 'prev-month', 'next-month']);
 
 // 生成日历
 const calendarDays = computed(() => {
@@ -99,25 +115,64 @@ const getDayEvents = (date) => {
 
 <style scoped>
 .calendar-container {
-  flex: 1;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  padding: 20px;
-  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  transition: all 0.3s ease;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.calendar-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.calendar-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.action-btn {
+  background: #f1f5f9;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: #e2e8f0;
+}
+
+.action-btn svg {
+  fill: #4a5568;
 }
 
 .weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
-  font-weight: 600;
-  color: #4a5568;
-  margin-bottom: 10px;
+  font-weight: 500;
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 8px;
 }
 
 .weekday {
-  padding: 8px 0;
+  padding: 5px 0;
 }
 
 .calendar-grid {
@@ -127,16 +182,17 @@ const getDayEvents = (date) => {
 }
 
 .calendar-day {
+  position: relative;
   aspect-ratio: 1/1;
+  min-height: 32px;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px;
+  justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  position: relative;
+  font-size: 14px;
 }
 
 .calendar-day:hover {
@@ -145,6 +201,7 @@ const getDayEvents = (date) => {
 
 .calendar-day.current-month {
   background-color: white;
+  color: #2d3748;
 }
 
 .calendar-day:not(.current-month) {
@@ -154,35 +211,36 @@ const getDayEvents = (date) => {
 .calendar-day.today {
   background-color: #dbeafe;
   font-weight: bold;
+  color: #1d4ed8;
 }
 
 .calendar-day.selected {
   background-color: #eff6ff;
   font-weight: bold;
   color: #1d4ed8;
+  box-shadow: 0 0 0 2px #93c5fd;
 }
 
 .day-number {
-  font-size: 16px;
+  position: absolute;
+  top: 5px;
+  left: 5px;
   font-weight: 500;
 }
 
 .events-indicator {
+  position: absolute;
+  bottom: 5px;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
   gap: 3px;
-  width: 100%;
 }
 
 .event-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-}
-
-@media (max-width: 768px) {
-  .calendar-container {
-    max-width: 100%;
-  }
 }
 </style>
