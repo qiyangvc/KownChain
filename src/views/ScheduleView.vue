@@ -136,6 +136,11 @@ const nextDayStr = computed(() => {
   d.setDate(d.getDate() + 1);
   return d.toISOString().slice(0, 10);
 });
+const nextDayDate = computed(() => {
+  const d = new Date(selectedDate.value);
+  d.setDate(d.getDate() + 1);
+  return d;
+});
 const nextDayTasks = computed(() => tasks.value.filter(task => task.tdDate === nextDayStr.value));
 
 // 计算当前日历视图的起止日期（6周42天）
@@ -176,7 +181,7 @@ async function addTask(task) {
   await api.addTodo({
     ...task,
     uid: currentUserId.value
-    // tdDate 已经由 TaskList 传递，无需再用 selectedDate
+    // 不要覆盖 tdDate
   });
   await fetchTasks();
 }

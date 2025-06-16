@@ -2,6 +2,8 @@
 
 ## Vue 3 基础
 
+[README.md](/mock/files/readme.md)
+
 Vue 3 是一个用于构建用户界面的渐进式框架。与 Vue 2 相比，它带来了许多重要的改进：
 
 - **Composition API**：提供了更灵活的代码组织方式

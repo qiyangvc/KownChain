@@ -101,35 +101,6 @@ const contentError = computed(() => store.contentError);
 // 你需要维护一个所有文件内容的 Map，例如 { fid: content }
 const allFileContents = computed(() => store.allFileContents); // 需你在 store 里维护
 
-// 生成节点
-const graphNodes = computed(() =>
-  resourceTree.value.map(file => ({
-    id: file.fid,
-    label: file.fName
-  }))
-);
-
-// 生成链接
-const graphLinks = computed(() => {
-  const links = [];
-  resourceTree.value.forEach(file => {
-    const content = allFileContents.value[file.fid];
-    if (!content) return;
-    // 匹配 Markdown 链接 [xxx](url)
-    const regex = /\[.*?\]\((.*?)\)/g;
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-      const url = match[1];
-      // 假设本地文件链接是以某种规则命名，比如 /file/123.md
-      const target = resourceTree.value.find(f => url.includes(f.fName));
-      if (target) {
-        links.push({ from: file.fid, to: target.fid });
-      }
-    }
-  });
-  return links;
-});
-
 // 渲染Markdown内容
 const renderedContent = computed(() => {
   if (!store.currentFileContent) return '';

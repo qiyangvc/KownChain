@@ -119,5 +119,13 @@ export default {
       return mockApi.getTodoByUidAndDate(params);
     }
     return axios.get('/getTodoByUidAndDate', { params });
-  }
+  },
+
+  // 获取知识图谱
+  getKnowledgeGraph() {
+    if (USE_MOCK_DATA) {
+      return mockApi.getKnowledgeGraph();
+    }
+    return axios.get('/knowledge-graph');
+  },
 }

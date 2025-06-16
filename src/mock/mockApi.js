@@ -1,6 +1,7 @@
 import { use } from 'marked';
 import { resourceTreeData } from './resourceTree';
 import { userData } from './userdata';
+import { useAuthStore } from '@/stores/auth';
 
 // 模拟文件内容映射
 const fileContents = {
@@ -236,5 +237,35 @@ if (credentials.userName == userData[key].userName && credentials.password == us
   getTodoByUidAndDate({ uid, tdDate }) {
     const list = mockTodoList.filter(item => item.uid === uid && item.tdDate === tdDate);
     return Promise.resolve({ data: { success: true, list } });
+  },
+
+  // 获取知识图谱节点和关系
+  getKnowledgeGraph() {
+    const nodes = [];
+    const links = [];
+    function traverse(tree, parent = null, level = 0) {
+      if (!tree) return;
+      console.log('traverse', tree);
+      tree.forEach(item => {
+        nodes.push({
+          id: item.fid,
+          label: item.fName,
+          isDir: !!item.isDir,
+          level
+        });
+        if (parent) {
+          links.push({ from: parent.fid, to: item.fid });
+        }
+        // 递归遍历子目录
+        if (item.children && item.children.length) {
+          traverse(item.children, item, level + 1);
+        }
+      });
+    }
+    // resourceTreeData 应该是你的 mock 资源树数据
+    traverse(resourceTreeData);
+    return Promise.resolve({ data: { nodes, links } });
   }
 }
+
+console.log('resourceTreeData', resourceTreeData);
