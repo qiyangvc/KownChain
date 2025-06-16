@@ -38,14 +38,16 @@
         }"
         @click="$emit('date-selected', day.date)"
       >
-        <div class="day-number">{{ day.date.getDate() }}</div>
-        <div class="events-indicator">
-          <span 
-            v-for="(color, i) in getDayEvents(day.date)" 
-            :key="i" 
-            class="event-dot" 
-            :style="{ backgroundColor: color }"
-          ></span>
+        <div class="calendar-day-cell">
+          <div class="day-number">{{ day.date.getDate() }}</div>
+          <div class="events-indicator">
+            <span 
+              v-for="(color, i) in getDayEvents(day.date)" 
+              :key="i" 
+              class="event-dot" 
+              :style="{ backgroundColor: color }"
+            ></span>
+          </div>
         </div>
       </div>
     </div>
@@ -106,15 +108,9 @@ const calendarDays = computed(() => {
 
 // 获取某一天的任务标记
 const getDayEvents = (date) => {
-  const dayTasks = props.tasks.filter(task => {
-    const taskDate = new Date(task.date);
-    return taskDate.getDate() === date.getDate() &&
-           taskDate.getMonth() === date.getMonth() &&
-           taskDate.getFullYear() === date.getFullYear();
-  });
-  
-  // 返回任务颜色数组（最多3个）
-  return dayTasks.slice(0, 3).map(task => task.color);
+  const dateStr = date.toISOString().slice(0, 10);
+  const dayTasks = props.tasks.filter(task => task.tdDate === dateStr);
+  return Array(dayTasks.length).fill('#4a6cf7');
 };
 
 // 新增：格式化年月日
@@ -129,6 +125,8 @@ const getDayOfWeek = (date) => {
   const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
   return days[date.getDay()];
 };
+
+console.log('calendar tasks:', props.tasks);
 </script>
 
 <style scoped>
@@ -277,26 +275,37 @@ const getDayOfWeek = (date) => {
   box-shadow: 0 0 0 2px #93c5fd;
 }
 
+.calendar-day-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end; /* 让内容靠下 */
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
 .day-number {
-  position: absolute;
-  top: 5px;
-  left: 5px;
   font-weight: 500;
+  margin-bottom: auto; /* 推到上方 */
+  z-index: 1;
 }
 
 .events-indicator {
-  position: absolute;
-  bottom: 5px;
-  left: 0;
-  right: 0;
+  margin-top: auto;
+  margin-bottom: 4px; /* 让小点更靠下 */
+  min-height: 10px;
   display: flex;
   justify-content: center;
-  gap: 3px;
+  align-items: flex-end;
+  gap: 2px;
 }
 
 .event-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background: #4a6cf7;
+  display: inline-block;
 }
 </style>

@@ -12,55 +12,70 @@
     
     <div 
       v-for="task in tasks" 
-      :key="task.id" 
+      :key="task.tdID" 
       class="task-card"
-      :style="{ borderLeftColor: task.color }"
+      style="border-left: 6px solid #4a6cf7;"
     >
       <div class="task-content">
-        <div class="task-info" v-if="editId !== task.id">
-          <div class="task-title">{{ task.title }}</div>
+        <div class="task-info" v-if="editId !== task.tdID">
+          <div class="task-title">{{ task.tdContent }}</div>
           <div class="task-time">
-            {{ task.start || task.time }}<span v-if="task.start"> - {{ task.end }}</span>
+            {{ task.tdStartTime }}<span v-if="task.tdStartTime"> - {{ task.tdEndTime }}</span>
           </div>
         </div>
         <!-- 编辑模式 -->
         <div class="task-info" v-else>
-          <input v-model="editTask.title" class="edit-input" />
-          <input type="time" v-model="editTask.start" class="edit-input" style="width:90px" />
-          <span style="margin:0 4px;">-</span>
-          <input type="time" v-model="editTask.end" class="edit-input" style="width:90px" />
-          <textarea v-model="editTask.description" class="edit-textarea" rows="2"></textarea>
-          <!-- 新增颜色选择器 -->
-          <div style="margin: 8px 0;">
-            <label style="font-size:13px;color:#888;">卡片颜色：</label>
-            <input type="color" v-model="editTask.color" style="vertical-align: middle; width: 32px; height: 24px; border: none; background: none;"/>
-            <span v-for="color in defaultColors" :key="color"
-                  :style="{background: color, width: '22px', height: '22px', display: 'inline-block', borderRadius: '4px', marginLeft: '6px', cursor: 'pointer', border: editTask.color === color ? '2px solid #333' : '1px solid #eee'}"
-                  @click="editTask.color = color">
-            </span>
+          <input v-model="editTask.tdContent" class="edit-input" placeholder="任务名称" />
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <input type="time" v-model="editTask.tdStartTime" class="edit-input" style="width:90px" />
+            <span style="margin:0 4px;">-</span>
+            <input type="time" v-model="editTask.tdEndTime" class="edit-input" style="width:90px" />
           </div>
         </div>
-        <div class="task-actions">
-          <button v-if="editId !== task.id" @click="startEdit(task)">编辑</button>
-          <button v-else @click="saveEdit(task)">保存</button>
-          <button v-if="editId === task.id" @click="cancelEdit">取消</button>
-          <button @click="$emit('toggle-complete', task)" class="complete-btn">
-            <svg v-if="task.completed" viewBox="0 0 24 24" width="20" height="20">
-              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-            </svg>
-            <svg v-else viewBox="0 0 24 24" width="20" height="20">
-              <path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
-            </svg>
-          </button>
-          <button @click="$emit('delete-task', task.id)" class="delete-btn">
-            <svg viewBox="0 0 24 24" width="20" height="20">
-              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-            </svg>
-          </button>
-        </div>
       </div>
-      <div v-if="editId !== task.id && task.description" class="task-description">
-        {{ task.description }}
+      <div class="task-actions">
+        <button
+          class="icon-btn edit-btn"
+          v-if="editId !== task.tdID"
+          @click="startEdit(task)"
+          title="编辑"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M4 21h4l11-11-4-4L4 17v4z" stroke="#1976d2" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="btn-text">编辑</span>
+        </button>
+        <button
+          class="icon-btn delete-btn"
+          v-if="editId !== task.tdID"
+          @click="$emit('delete-task', task.tdID)"
+          title="删除"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M6 6L18 18M6 18L18 6" stroke="#f44336" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="btn-text">删除</span>
+        </button>
+        <button
+          class="icon-btn complete-btn"
+          @click="$emit('toggle-complete', { ...task, tdFinishFlag: task.tdFinishFlag ? 0 : 1 })"
+          :title="task.tdFinishFlag ? '标记为未完成' : '标记为已完成'"
+        >
+          <span v-if="task.tdFinishFlag">✔️</span>
+          <span v-else>⬜</span>
+        </button>
+        <template v-if="editId === task.tdID">
+          <input v-model="editTask.tdContent" class="edit-input" placeholder="任务名称" />
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <input type="time" v-model="editTask.tdStartTime" class="edit-input" style="width:90px" />
+            <span style="margin:0 4px;">-</span>
+            <input type="time" v-model="editTask.tdEndTime" class="edit-input" style="width:90px" />
+          </div>
+          <div class="edit-actions">
+            <button class="save-btn" @click="saveEdit">保存</button>
+            <button class="cancel-btn" @click="cancelEdit">取消</button>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -69,25 +84,15 @@
       <div class="modal-wrapper">
         <div class="modal-container">
           <h3>新建任务</h3>
-          <input v-model="newTask.title" placeholder="任务名称" />
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <input type="time" v-model="newTask.start" style="width:90px" placeholder="开始时间" />
-            <span>-</span>
-            <input type="time" v-model="newTask.end" style="width:90px" placeholder="结束时间" />
-          </div>
-          <textarea v-model="newTask.description" placeholder="备注（可选）" class="edit-textarea" rows="2"></textarea>
-          <!-- 新增颜色选择器 -->
-          <div style="margin: 8px 0;">
-            <label style="font-size:13px;color:#888;">卡片颜色：</label>
-            <input type="color" v-model="newTask.color" style="vertical-align: middle; width: 32px; height: 24px; border: none; background: none;"/>
-            <span v-for="color in defaultColors" :key="color"
-                  :style="{background: color, width: '22px', height: '22px', display: 'inline-block', borderRadius: '4px', marginLeft: '6px', cursor: 'pointer', border: newTask.color === color ? '2px solid #333' : '1px solid #eee'}"
-                  @click="newTask.color = color">
-            </span>
+          <input v-model="newTask.tdContent" placeholder="任务名称" class="edit-input" />
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <input type="time" v-model="newTask.tdStartTime" class="edit-input" style="width:90px" />
+            <span style="margin:0 4px;">-</span>
+            <input type="time" v-model="newTask.tdEndTime" class="edit-input" style="width:90px" />
           </div>
           <div class="edit-actions">
-            <button @click="confirmAddTask">确认</button>
-            <button @click="closeModal">取消</button>
+            <button @click="confirmAddTask" class="save-btn">确认</button>
+            <button @click="closeModal" class="cancel-btn">取消</button>
           </div>
         </div>
       </div>
@@ -99,34 +104,38 @@
 import { ref } from 'vue';
 
 const props = defineProps({
-  tasks: {
-    type: Array,
-    required: true
-  }
+  tasks: { type: Array, required: true },
+  date: { type: Date, required: true }
 });
 
 const emit = defineEmits(['delete-task', 'toggle-complete', 'update-task', 'add-task']);
 
 const editId = ref(null);
-const editTask = ref({});
-
-const showModal = ref(false);
 const newTask = ref({
-  title: '',
-  start: '',
-  end: '',
-  description: '',
-  color: '#4a6cf7' // 默认颜色
+  tdContent: '',
+  tdStartTime: '',
+  tdEndTime: '',
+  tdFinishFlag: 0
 });
-const defaultColors = ['#4a6cf7', '#ff9800', '#4caf50', '#e91e63', '#9c27b0', '#ff0000', '#00bcd4']; // 默认颜色数组
+const editTask = ref({
+  tdID: null,
+  tdContent: '',
+  tdStartTime: '',
+  tdEndTime: '',
+  tdFinishFlag: 0
+});
+const showModal = ref(false);
 
 function startEdit(task) {
-  editId.value = task.id;
+  editId.value = task.tdID;
   editTask.value = { ...task };
 }
-function saveEdit(task) {
-  // 校验开始时间必须早于结束时间
-  if (editTask.value.start && editTask.value.end && editTask.value.start >= editTask.value.end) {
+function saveEdit() {
+  if (!editTask.value.tdContent.trim()) {
+    alert('请填写任务名称');
+    return;
+  }
+  if (editTask.value.tdStartTime && editTask.value.tdEndTime && editTask.value.tdStartTime >= editTask.value.tdEndTime) {
     alert('开始时间必须早于结束时间');
     return;
   }
@@ -139,36 +148,25 @@ function cancelEdit() {
 
 function closeModal() {
   showModal.value = false;
-  newTask.value = { title: '', start: '', end: '', description: '', color: '#4a6cf7' };
+  newTask.value = { tdContent: '', tdStartTime: '', tdEndTime: '', tdFinishFlag: 0 };
 }
 function confirmAddTask() {
-  if (!newTask.value.title.trim()) {
+  if (!newTask.value.tdContent.trim()) {
     alert('请填写任务名称');
     return;
   }
-  if (newTask.value.start && newTask.value.end && newTask.value.start >= newTask.value.end) {
+  if (newTask.value.tdStartTime && newTask.value.tdEndTime && newTask.value.tdStartTime >= newTask.value.tdEndTime) {
     alert('开始时间必须早于结束时间');
     return;
   }
-  // 随机颜色已由用户选择覆盖
   emit('add-task', {
-    id: Date.now(),
-    title: newTask.value.title,
-    start: newTask.value.start,
-    end: newTask.value.end,
-    description: newTask.value.description,
-    completed: false,
-    color: newTask.value.color || '#4a6cf7',
-    date: new Date() // 可根据需要调整
+    tdContent: newTask.value.tdContent,
+    tdStartTime: newTask.value.tdStartTime,
+    tdEndTime: newTask.value.tdEndTime,
+    tdFinishFlag: 0,
+    tdDate: props.date.toISOString().slice(0, 10) // 关键：带上当前列表的日期
   });
   closeModal();
-}
-function setColor(color) {
-  if (editId.value !== null) {
-    editTask.value.color = color;
-  } else {
-    newTask.value.color = color;
-  }
 }
 </script>
 
@@ -223,9 +221,9 @@ function setColor(color) {
   display: flex;
   gap: 8px;
 }
-.complete-btn, .delete-btn {
-  background: none;
-  border: none;
+.icon-btn {
+  background: #fff;
+  border: 1px solid #e0e0e0;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -233,34 +231,86 @@ function setColor(color) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background 0.2s, box-shadow 0.2s;
+  margin-right: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
-.complete-btn {
-  color: #4caf50;
+.icon-btn.edit-btn:hover {
+  background: #e3f2fd;
+  border-color: #90caf9;
 }
-.complete-btn:hover {
-  background-color: rgba(76, 175, 80, 0.1);
+.icon-btn.delete-btn:hover {
+  background: #ffebee;
+  border-color: #f44336;
 }
-.delete-btn {
+.icon-btn.complete-btn:hover {
+  background: #e8f5e9;
+  border-color: #4caf50;
+}
+.btn-text {
+  font-size: 13px;
+  margin-left: 2px;
+  color: #888;
+  display: none;
+}
+.icon-btn:hover .btn-text {
+  display: inline;
+  color: #1976d2;
+}
+.icon-btn.delete-btn:hover .btn-text {
   color: #f44336;
 }
-.delete-btn:hover {
-  background-color: rgba(244, 67, 54, 0.1);
+.edit-input {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  border: 1px solid #e0e0e0;
+  font-size: 15px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  transition: border 0.2s;
+}
+.edit-input:focus {
+  border: 1.5px solid #4a6cf7;
+  background: #fff;
+}
+.edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.save-btn {
+  background: #4a6cf7;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.save-btn:hover {
+  background: #3a56e0;
+}
+.cancel-btn {
+  background: #f1f5f9;
+  color: #333;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.cancel-btn:hover {
+  background: #e2e8f0;
 }
 .task-description {
   color: #64748b;
   font-size: 14px;
   padding-top: 8px;
   border-top: 1px solid #f1f5f9;
-}
-.edit-input, .edit-textarea {
-  margin: 4px 0;
-  font-size: 15px;
-  width: 100%;
-  box-sizing: border-box;
-}
-.edit-textarea {
-  resize: vertical;
 }
 .empty-tasks {
   background: white;

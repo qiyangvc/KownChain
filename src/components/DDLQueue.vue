@@ -12,15 +12,35 @@
           <div class="ddl-remaining">剩余：{{ getRemainDetail(card.dEndTime) }}</div>
           <div class="ddl-desc" v-if="card.dNotes">{{ card.dNotes }}</div>
           <div class="ddl-actions">
-            <button v-if="editId !== card.dID" @click="startEdit(card)">编辑</button>
-            <button v-if="editId !== card.dID" @click="deleteCard(card.dID)">删除</button>
+            <button
+              class="icon-btn edit-btn"
+              v-if="editId !== card.dID"
+              @click="startEdit(card)"
+              title="编辑"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M4 21h4l11-11-4-4L4 17v4z" stroke="#1976d2" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span class="btn-text">编辑</span>
+            </button>
+            <button
+              class="icon-btn delete-btn"
+              v-if="editId !== card.dID"
+              @click="deleteCard(card.dID)"
+              title="删除"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M6 6L18 18M6 18L18 6" stroke="#f44336" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span class="btn-text">删除</span>
+            </button>
             <template v-if="editId === card.dID">
-              <input v-model="editCard.dTitle" placeholder="任务名称" />
-              <input type="datetime-local" v-model="editCard.dEndTime" />
-              <textarea v-model="editCard.dNotes" placeholder="备注（可选）"></textarea>
+              <input v-model="editCard.dTitle" placeholder="任务名称" class="edit-input" />
+              <input type="datetime-local" v-model="editCard.dEndTime" class="edit-input" />
+              <textarea v-model="editCard.dNotes" placeholder="备注（可选）" class="edit-textarea"></textarea>
               <div class="edit-actions">
-                <button @click="saveEdit(card.dID)">保存</button>
-                <button @click="cancelEdit">取消</button>
+                <button class="save-btn" @click="saveEdit(card.dID)">保存</button>
+                <button class="cancel-btn" @click="cancelEdit">取消</button>
               </div>
             </template>
           </div>
@@ -210,6 +230,17 @@ onMounted(fetchDDLList);
   max-width: 180px;
   flex: 0 0 160px;
 }
+.ddl-card[style] {
+  /* 保持原有背景色逻辑 */
+}
+.ddl-card-edit,
+.ddl-actions .edit-input,
+.ddl-actions .edit-textarea {
+  background: #f4f8ff;
+  border: 1.5px solid #4a6cf7;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(74,108,247,0.06);
+}
 .ddl-title {
   font-weight: 600;
   font-size: 18px;
@@ -250,9 +281,91 @@ onMounted(fetchDDLList);
   border: 1px solid #e0e0e0;
   box-sizing: border-box;
 }
+.icon-btn {
+  background: #fff;              /* 白色底 */
+  border: 1px solid #e0e0e0;     /* 浅灰边框 */
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  margin-right: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08); /* 轻微阴影 */
+}
+
+.icon-btn.edit-btn:hover {
+  background: #e3f2fd;
+  border-color: #90caf9;
+}
+
+.icon-btn.delete-btn:hover {
+  background: #ffebee;
+  border-color: #f44336;
+}
+
+.btn-text {
+  font-size: 13px;
+  margin-left: 2px;
+  color: #888;
+  display: none;
+}
+
+.icon-btn:hover .btn-text {
+  display: inline;
+  color: #1976d2;
+}
+
+.icon-btn.delete-btn:hover .btn-text {
+  color: #f44336;
+}
+.edit-input, .edit-textarea {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  font-size: 15px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  transition: border 0.2s;
+}
+.edit-input:focus, .edit-textarea:focus {
+  border: 1.5px solid #4a6cf7;
+  background: #fff;
+}
 .edit-actions {
   display: flex;
   gap: 10px;
+  margin-top: 6px;
+}
+.save-btn {
+  background: #4a6cf7;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.save-btn:hover {
+  background: #3a56e0;
+}
+.cancel-btn {
+  background: #f1f5f9;
+  color: #333;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.cancel-btn:hover {
+  background: #e2e8f0;
 }
 .modal-mask {
   position: fixed;

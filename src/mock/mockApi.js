@@ -28,6 +28,28 @@ let mockDDLList = [
   }
 ];
 
+// 模拟TODOTable数据
+let mockTodoList = [
+  {
+    tdID: 1,
+    uid: 1,
+    tdDate: '2025-06-18',
+    tdContent: '完成前端页面开发',
+    tdStartTime: '09:00',
+    tdEndTime: '10:00',
+    tdFinishFlag: 0
+  },
+  {
+    tdID: 2,
+    uid: 1,
+    tdDate: '2025-06-18',
+    tdContent: '复习算法题',
+    tdStartTime: '10:30',
+    tdEndTime: '11:30',
+    tdFinishFlag: 1
+  }
+];
+
 export const mockApi = {
   // 获取资源树
   async getResourceTree() {
@@ -185,6 +207,34 @@ if (credentials.userName == userData[key].userName && credentials.password == us
 
   getDDLByUid(uid) {
     const list = mockDDLList.filter(item => item.uid === uid);
+    return Promise.resolve({ data: { success: true, list } });
+  },
+
+  // 新增待办
+  addTodo(data) {
+    const newTodo = { ...data, tdID: Date.now() };
+    mockTodoList.push(newTodo);
+    return Promise.resolve({ data: { success: true, todo: newTodo } });
+  },
+
+  // 删除待办
+  deleteTodo(data) {
+    mockTodoList = mockTodoList.filter(item => item.tdID !== data.tdID);
+    return Promise.resolve({ data: { success: true } });
+  },
+
+  // 修改待办
+  modifyTodo(data) {
+    const idx = mockTodoList.findIndex(item => item.tdID === data.tdID);
+    if (idx !== -1) {
+      mockTodoList[idx] = { ...mockTodoList[idx], ...data };
+    }
+    return Promise.resolve({ data: { success: true, todo: mockTodoList[idx] } });
+  },
+
+  // 按用户ID和日期获取待办列表
+  getTodoByUidAndDate({ uid, tdDate }) {
+    const list = mockTodoList.filter(item => item.uid === uid && item.tdDate === tdDate);
     return Promise.resolve({ data: { success: true, list } });
   }
 }

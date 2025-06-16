@@ -2,7 +2,7 @@
   <div class="schedule-container">
     <h1>日程管理</h1>
     <div class="calendar-panel">
-      <CalendarComponent 
+      <CalendarComponent
         :current-date="currentDate"
         :selected-date="selectedDate"
         :tasks="tasks"
@@ -22,20 +22,22 @@
         <h2 class="todo-title">当日待办</h2>
         <TaskList 
           :tasks="selectedDayTasks"
+          :date="selectedDate"
+          @add-task="addTask"
           @delete-task="deleteTask"
           @toggle-complete="toggleComplete"
           @update-task="updateTask"
-          @add-task="addTask"
         />
       </div>
       <div class="todo-col">
         <h2 class="todo-title">次日待办</h2>
         <TaskList 
           :tasks="nextDayTasks"
+          :date="nextDayDate"
+          @add-task="addTask"
           @delete-task="deleteTask"
           @toggle-complete="toggleComplete"
           @update-task="updateTask"
-          @add-task="addTask"
         />
       </div>
     </div>
@@ -43,10 +45,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import CalendarComponent from '@/components/Calendar.vue';
 import TaskList from '@/components/TaskList.vue';
 import DDLQueue from '@/components/DDLQueue.vue'; // 新增引入
+import api from '@/api/auth'
+import { useAuthStore } from '@/stores/auth'
+
+const store = useAuthStore();
+const currentUserId = computed(() => store.userID || 1);
 
 // 当前日期
 const today = new Date();
@@ -65,6 +72,24 @@ const tasks = ref([
   { id: 4, title: '产品演示', time: '15:30', date: new Date(new Date().setDate(new Date().getDate() + 1)), description: '为新客户展示产品功能', completed: false, color: '#e91e63' },
   { id: 5, title: '项目截止', time: '17:00', date: new Date(new Date().setDate(new Date().getDate() + 3)), description: '完成所有开发任务', completed: false, color: '#9c27b0' },
 ]);
+
+// 获取当天待办
+async function fetchTasks() {
+  const start = calendarStartDate.value;
+  const end = calendarEndDate.value;
+  const days = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    days.push(d.toISOString().slice(0, 10));
+  }
+  // 并发获取所有日期的任务
+  const results = await Promise.all(
+    days.map(tdDate => api.getTodoByUidAndDate({ uid: currentUserId.value, tdDate }))
+  );
+  // 合并所有任务
+  const all = results.flatMap(res => res.data.list || []);
+  // 去重
+  tasks.value = Array.from(new Map(all.map(item => [item.tdID, item])).values());
+}
 
 // 日期计算
 const currentYear = computed(() => currentDate.value.getFullYear());
@@ -103,21 +128,27 @@ const filteredTasks = computed(() => {
 });
 
 // 当日任务
-const selectedDayTasks = computed(() => {
-  const selectedStr = selectedDate.value.toDateString();
-  return tasks.value
-    .filter(task => new Date(task.date).toDateString() === selectedStr)
-    .sort((a, b) => (a.start || a.time) < (b.start || b.time) ? -1 : 1);
-});
+const selectedDayStr = computed(() => selectedDate.value.toISOString().slice(0, 10));
+const selectedDayTasks = computed(() => tasks.value.filter(task => task.tdDate === selectedDayStr.value));
 
-// 次日任务
-const nextDayTasks = computed(() => {
-  const nextDay = new Date(selectedDate.value);
-  nextDay.setDate(nextDay.getDate() + 1);
-  const nextDayStr = nextDay.toDateString();
-  return tasks.value
-    .filter(task => new Date(task.date).toDateString() === nextDayStr)
-    .sort((a, b) => (a.start || a.time) < (b.start || b.time) ? -1 : 1);
+const nextDayStr = computed(() => {
+  const d = new Date(selectedDate.value);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+});
+const nextDayTasks = computed(() => tasks.value.filter(task => task.tdDate === nextDayStr.value));
+
+// 计算当前日历视图的起止日期（6周42天）
+const calendarStartDate = computed(() => {
+  const firstDay = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), 1);
+  const start = new Date(firstDay);
+  start.setDate(firstDay.getDate() - firstDay.getDay());
+  return start;
+});
+const calendarEndDate = computed(() => {
+  const end = new Date(calendarStartDate.value);
+  end.setDate(end.getDate() + 41); // 42天
+  return end;
 });
 
 // 切换月份
@@ -141,32 +172,39 @@ const selectDate = (date) => {
 };
 
 // 添加任务
-const addTask = (task) => {
-  tasks.value.push(task);
-};
+async function addTask(task) {
+  await api.addTodo({
+    ...task,
+    uid: currentUserId.value
+    // tdDate 已经由 TaskList 传递，无需再用 selectedDate
+  });
+  await fetchTasks();
+}
 
 // 删除任务
-const deleteTask = (id) => {
-  tasks.value = tasks.value.filter(task => task.id !== id);
-};
+async function deleteTask(tdID) {
+  await api.deleteTodo({ tdID });
+  await fetchTasks();
+}
 
 // 切换任务完成状态
-const toggleComplete = (task) => {
-  task.completed = !task.completed;
-};
+async function toggleComplete(task) {
+  await api.modifyTodo(task); // 这里 task 已经是切换后的状态
+  await fetchTasks();         // 重新拉取最新数据
+}
 
 // 更新任务
-const updateTask = (updatedTask) => {
-  const idx = tasks.value.findIndex(t => t.id === updatedTask.id);
-  if (idx !== -1) {
-    tasks.value[idx] = { ...tasks.value[idx], ...updatedTask };
-  }
-};
+async function updateTask(task) {
+  await api.modifyTodo(task);
+  await fetchTasks();
+}
 
 onMounted(() => {
   // 初始化选中日期为今天
   selectedDate.value = new Date();
+  fetchTasks();
 });
+watch(selectedDate, fetchTasks);
 </script>
 
 <style scoped>

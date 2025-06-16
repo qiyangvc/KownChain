@@ -87,5 +87,37 @@ export default {
       return mockApi.getDDLByUid(uid);
     }
     return axios.get('/getDDLByUid', { params: { uid } });
+  },
+
+  // 新增待办
+  addTodo(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.addTodo(data);
+    }
+    return axios.post('/addTodo', data);
+  },
+
+  // 删除待办
+  deleteTodo(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.deleteTodo(data);
+    }
+    return axios.put('/deleteTodo', data);
+  },
+
+  // 修改待办
+  modifyTodo(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.modifyTodo(data);
+    }
+    return axios.put('/modifyTodo', data);
+  },
+
+  // 按用户ID和日期获取待办列表
+  getTodoByUidAndDate(params) {
+    if (USE_MOCK_DATA) {
+      return mockApi.getTodoByUidAndDate(params);
+    }
+    return axios.get('/getTodoByUidAndDate', { params });
   }
 }
