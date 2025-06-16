@@ -27,9 +27,9 @@
         <div class="task-info" v-else>
           <input v-model="editTask.tdContent" class="edit-input" placeholder="任务名称" />
           <div style="display: flex; align-items: center; gap: 6px;">
-            <input type="time" v-model="editTask.tdStartTime" class="edit-input" style="width:90px" />
+            <input type="time" v-model="editTask.tdStartTime" class="edit-input" style="width:120px" />
             <span style="margin:0 4px;">-</span>
-            <input type="time" v-model="editTask.tdEndTime" class="edit-input" style="width:90px" />
+            <input type="time" v-model="editTask.tdEndTime" class="edit-input" style="width:120px" />
           </div>
         </div>
       </div>
@@ -65,12 +65,6 @@
           <span v-else>⬜</span>
         </button>
         <template v-if="editId === task.tdID">
-          <input v-model="editTask.tdContent" class="edit-input" placeholder="任务名称" />
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <input type="time" v-model="editTask.tdStartTime" class="edit-input" style="width:90px" />
-            <span style="margin:0 4px;">-</span>
-            <input type="time" v-model="editTask.tdEndTime" class="edit-input" style="width:90px" />
-          </div>
           <div class="edit-actions">
             <button class="save-btn" @click="saveEdit">保存</button>
             <button class="cancel-btn" @click="cancelEdit">取消</button>
@@ -86,9 +80,9 @@
           <h3>新建任务</h3>
           <input v-model="newTask.tdContent" placeholder="任务名称" class="edit-input" />
           <div style="display: flex; align-items: center; gap: 6px;">
-            <input type="time" v-model="newTask.tdStartTime" class="edit-input" style="width:90px" />
+            <input type="time" v-model="newTask.tdStartTime" class="edit-input" style="width:120px" />
             <span style="margin:0 4px;">-</span>
-            <input type="time" v-model="newTask.tdEndTime" class="edit-input" style="width:90px" />
+            <input type="time" v-model="newTask.tdEndTime" class="edit-input" style="width:120px" />
           </div>
           <div class="edit-actions">
             <button @click="confirmAddTask" class="save-btn">确认</button>

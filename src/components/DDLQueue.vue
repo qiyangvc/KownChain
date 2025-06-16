@@ -47,18 +47,17 @@
         </div>
       </div>
     </div>
-    <!-- 弹窗部分保持不变 -->
+    <!-- 新建DDL卡片弹窗 -->
     <div v-if="showModal" class="modal-mask">
       <div class="modal-wrapper">
         <div class="modal-container">
           <h3>新建DDL卡片</h3>
-          <!-- 新建弹窗 -->
-          <input v-model="newCard.dTitle" placeholder="任务名称" />
-          <input type="datetime-local" v-model="newCard.dEndTime" />
-          <textarea v-model="newCard.dNotes" placeholder="备注（可选）"></textarea>
+          <input v-model="newCard.dTitle" placeholder="任务名称" class="edit-input" />
+          <input type="datetime-local" v-model="newCard.dEndTime" class="edit-input" />
+          <textarea v-model="newCard.dNotes" placeholder="备注（可选）" class="edit-textarea"></textarea>
           <div class="edit-actions">
-            <button @click="confirmAddCard">确认</button>
-            <button @click="closeModal">取消</button>
+            <button @click="confirmAddCard" class="save-btn">确认</button>
+            <button @click="closeModal" class="cancel-btn">取消</button>
           </div>
         </div>
       </div>
