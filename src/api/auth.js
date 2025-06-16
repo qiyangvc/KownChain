@@ -55,5 +55,37 @@ export default {
       return mockApi.saveFileContent(url, content);
     }
     return axios.put(url, { content });
+  },
+
+  // 创建DDL
+  addDDL(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.addDDL(data);
+    }
+    return axios.post('/addDDL', data);
+  },
+
+  // 删除DDL
+  deleteDDL(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.deleteDDL(data);
+    }
+    return axios.put('/deleteDDL', data);
+  },
+
+  // 修改DDL
+  modifyDDL(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.modifyDDL(data);
+    }
+    return axios.put('/modifyDDL', data);
+  },
+
+  // 获取DDL队列
+  getDDLByUid(uid) {
+    if (USE_MOCK_DATA) {
+      return mockApi.getDDLByUid(uid);
+    }
+    return axios.get('/getDDLByUid', { params: { uid } });
   }
 }

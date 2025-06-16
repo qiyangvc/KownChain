@@ -17,6 +17,17 @@ const fileContents = {
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // 模拟API
+let mockDDLList = [
+  {
+    dID: 1,
+    uid: 1,
+    dTitle: 'DDL 示例',
+    dEndTime: '2025-06-20T18:00',
+    dNotes: '示例DDL',
+    dCreateTime: '2025-06-01T10:00'
+  }
+];
+
 export const mockApi = {
   // 获取资源树
   async getResourceTree() {
@@ -152,4 +163,28 @@ if (credentials.userName == userData[key].userName && credentials.password == us
       }, 500);
     });
   },
-};
+
+  addDDL(data) {
+    const newDDL = { ...data, dID: Date.now(), dCreateTime: new Date().toISOString() };
+    mockDDLList.push(newDDL);
+    return Promise.resolve({ data: { success: true, ddl: newDDL } });
+  },
+
+  deleteDDL(data) {
+    mockDDLList = mockDDLList.filter(item => item.dID !== data.dID);
+    return Promise.resolve({ data: { success: true } });
+  },
+
+  modifyDDL(data) {
+    const idx = mockDDLList.findIndex(item => item.dID === data.dID);
+    if (idx !== -1) {
+      mockDDLList[idx] = { ...mockDDLList[idx], ...data };
+    }
+    return Promise.resolve({ data: { success: true, ddl: mockDDLList[idx] } });
+  },
+
+  getDDLByUid(uid) {
+    const list = mockDDLList.filter(item => item.uid === uid);
+    return Promise.resolve({ data: { success: true, list } });
+  }
+}

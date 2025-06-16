@@ -6,20 +6,20 @@
     </div>
     <div class="ddl-list-header">
       <div class="ddl-card-list">
-        <div v-for="(card, idx) in sortedCards" :key="card.id" class="ddl-card" :style="{ background: getCardColor(card.deadline) }">
-          <div class="ddl-title">{{ card.title }}</div>
-          <div class="ddl-deadline">截止：{{ formatDeadline(card.deadline) }}</div>
-          <div class="ddl-remaining">剩余：{{ getRemainDetail(card.deadline) }}</div>
-          <div class="ddl-desc" v-if="card.description">{{ card.description }}</div>
+        <div v-for="(card, idx) in sortedCards" :key="card.dID" class="ddl-card" :style="{ background: getCardColor(card.dEndTime) }">
+          <div class="ddl-title">{{ card.dTitle }}</div>
+          <div class="ddl-deadline">截止：{{ formatDeadline(card.dEndTime) }}</div>
+          <div class="ddl-remaining">剩余：{{ getRemainDetail(card.dEndTime) }}</div>
+          <div class="ddl-desc" v-if="card.dNotes">{{ card.dNotes }}</div>
           <div class="ddl-actions">
-            <button v-if="editId !== card.id" @click="startEdit(card)">编辑</button>
-            <button v-if="editId !== card.id" @click="deleteCard(card.id)">删除</button>
-            <template v-if="editId === card.id">
-              <input v-model="editCard.title" placeholder="任务名称" />
-              <input type="datetime-local" v-model="editCard.deadline" />
-              <textarea v-model="editCard.description" placeholder="备注（可选）"></textarea>
+            <button v-if="editId !== card.dID" @click="startEdit(card)">编辑</button>
+            <button v-if="editId !== card.dID" @click="deleteCard(card.dID)">删除</button>
+            <template v-if="editId === card.dID">
+              <input v-model="editCard.dTitle" placeholder="任务名称" />
+              <input type="datetime-local" v-model="editCard.dEndTime" />
+              <textarea v-model="editCard.dNotes" placeholder="备注（可选）"></textarea>
               <div class="edit-actions">
-                <button @click="saveEdit(card.id)">保存</button>
+                <button @click="saveEdit(card.dID)">保存</button>
                 <button @click="cancelEdit">取消</button>
               </div>
             </template>
@@ -32,9 +32,10 @@
       <div class="modal-wrapper">
         <div class="modal-container">
           <h3>新建DDL卡片</h3>
-          <input v-model="newCard.title" placeholder="任务名称" />
-          <input type="datetime-local" v-model="newCard.deadline" />
-          <textarea v-model="newCard.description" placeholder="备注（可选）"></textarea>
+          <!-- 新建弹窗 -->
+          <input v-model="newCard.dTitle" placeholder="任务名称" />
+          <input type="datetime-local" v-model="newCard.dEndTime" />
+          <textarea v-model="newCard.dNotes" placeholder="备注（可选）"></textarea>
           <div class="edit-actions">
             <button @click="confirmAddCard">确认</button>
             <button @click="closeModal">取消</button>
@@ -46,56 +47,64 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import api from '@/api/auth'
+import { ref, computed, onMounted } from 'vue';
+import { useAuthStore } from '@/stores/auth'
+
+const store = useAuthStore();
+const currentUserId = computed(() => store.userID || 1); // mock 测试用，默认1
 
 const cards = ref([]);
 const showModal = ref(false);
-const newCard = ref({ title: '', deadline: '', description: '' });
+const newCard = ref({
+  dTitle: '',
+  dEndTime: '',
+  dNotes: ''
+});
 
 const editId = ref(null);
 const editCard = ref({});
 
 function closeModal() {
   showModal.value = false;
-  newCard.value = { title: '', deadline: '', description: '' };
+  newCard.value = { dTitle: '', dEndTime: '', dNotes: '' };
 }
-function confirmAddCard() {
-  if (!newCard.value.title.trim() || !newCard.value.deadline) {
+// 新增DDL时
+async function confirmAddCard() {
+  if (!newCard.value.dTitle.trim() || !newCard.value.dEndTime) {
     alert('请填写任务名称和截止时间');
     return;
   }
   const card = {
-    id: Date.now(),
-    title: newCard.value.title,
-    deadline: newCard.value.deadline,
-    description: newCard.value.description
+    dTitle: newCard.value.dTitle,
+    dEndTime: newCard.value.dEndTime,
+    dNotes: newCard.value.dNotes,
+    uid: currentUserId.value
   };
-  cards.value.push(card);
+  await api.addDDL(card);
+  await fetchDDLList();
   closeModal();
-  sortCards();
 }
 
 function startEdit(card) {
-  editId.value = card.id;
+  editId.value = card.dID;
   editCard.value = { ...card };
 }
-function saveEdit(id) {
-  if (!editCard.value.title.trim() || !editCard.value.deadline) {
+async function saveEdit(dID) {
+  if (!editCard.value.dTitle.trim() || !editCard.value.dEndTime) {
     alert('请填写任务名称和截止时间');
     return;
   }
-  const idx = cards.value.findIndex(c => c.id === id);
-  if (idx !== -1) {
-    cards.value[idx] = { ...editCard.value, id };
-    sortCards();
-  }
+  await api.modifyDDL(editCard.value); // 调用mockApi或后端接口修改
+  await fetchDDLList();                // 重新拉取列表，确保已修改
   editId.value = null;
 }
 function cancelEdit() {
   editId.value = null;
 }
-function deleteCard(id) {
-  cards.value = cards.value.filter(c => c.id !== id);
+async function deleteCard(dID) {
+  await api.deleteDDL({ dID }); // 调用mockApi或后端接口删除
+  await fetchDDLList();         // 重新拉取列表，确保已删除
 }
 
 function getCardColor(deadline) {
@@ -113,7 +122,7 @@ function formatDeadline(deadline) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 function sortCards() {
-  cards.value.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  cards.value.sort((a, b) => new Date(a.dEndTime) - new Date(b.dEndTime));
 }
 function getRemainDays(deadline) {
   if (!deadline) return '-';
@@ -137,8 +146,15 @@ function getRemainDetail(deadline) {
   return `${days}天${hours}小时${minutes}分钟`;
 }
 const sortedCards = computed(() => {
-  return [...cards.value].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  return [...cards.value].sort((a, b) => new Date(a.dEndTime) - new Date(b.dEndTime));
 });
+
+async function fetchDDLList() {
+  const res = await api.getDDLByUid(currentUserId.value);
+  cards.value = res.data.list;
+}
+
+onMounted(fetchDDLList);
 </script>
 
 <style scoped>
