@@ -8,6 +8,12 @@ spring:
     url: jdbc:mysql://localhost:3306/knowchain?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: 1234
+  servlet:
+    # file
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+      enabled: true
 
 mybatis:
   #mapper配置文件
