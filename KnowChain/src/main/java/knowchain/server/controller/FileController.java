@@ -1,5 +1,6 @@
 package knowchain.server.controller;
 
+import knowchain.common.constant.FileConstant;
 import knowchain.common.result.Result;
 import knowchain.pojo.VO.FileAndDirItem;
 import knowchain.pojo.entity.FileAndDirTable;
@@ -10,12 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -29,7 +29,12 @@ public class FileController {
     @Autowired
     private FileService fileService;
 
-    // 获取文件和文件夹树形列表
+
+    /*
+
+     获取文件和文件夹树形列表
+
+     */
     @GetMapping("/getAll/{userID}")
     public Result<List<FileAndDirItem>> getFileAndDirList(@PathVariable String userID){
 
@@ -39,7 +44,11 @@ public class FileController {
         return Result.success(fileTrees);
     }
 
-    // 根据URL获取文件数据流
+    /*
+
+     根据URL获取文件数据流
+
+     */
     @GetMapping("/getFileStream/{URL}")
     public Result<InputStream> getFileStream(@PathVariable String URL){
         try {
@@ -56,7 +65,11 @@ public class FileController {
         }
     }
 
-    // 新建文件夹
+    /*
+
+     新建文件夹
+
+     */
     @PostMapping("/addDir")
     public Result addDirectory(
             @RequestParam("parentFID") Long parentFID,
@@ -72,7 +85,11 @@ public class FileController {
         }
     }
 
-    // 文件夹重命名
+    /*
+
+     文件夹重命名
+
+     */
     @PutMapping("/renameFileOrDir")
     public Result renameFileOrDirectory(
             @RequestParam("fid") Long fid,
@@ -89,25 +106,37 @@ public class FileController {
         }
     }
 
-    // 上传文件(支持的格式:.ppt .pptx .pdf格式文件)
+    /*
+
+     上传文件(支持的格式:.ppt .pptx .pdf格式文件)
+
+     */
     @PostMapping("/uploadFile")
-    public Result<String> uploadFile(@RequestParam("file") MultipartFile file){
-        // 文件名
-        String originalFIleName = file.getOriginalFilename();
-        // 文件大小
-        Long size = file.getSize();
-        // 保存文件
-        try{
+    public Result<String> uploadFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "parentFID", required = false) BigInteger parentfid,
+            @RequestParam("userID") BigInteger userid
+    ){
 
-            /* TODO */
+        try {
 
-            return Result.success(String.format("文件 %s 上传成功!", originalFIleName));
-        } catch (Exception e){
-            return Result.error(String.format("文件 %s 上传失败!", originalFIleName));
+            return fileService.uploadFile(file, parentfid, userid);
+
+        } catch (Exception e) {
+
+            String errString = String.format("文件上传出错: \n%s", e.getMessage());
+            log.error(errString);
+            return Result.error(errString);
+
         }
+
     }
 
-    // 修改文件或文件夹位置
+    /*
+
+     修改文件或文件夹位置
+
+     */
     @PutMapping("/changeFileOrDirPosition")
     public Result changeFileOrDirectoryPosition(
             @RequestParam("fid") Long fid,
@@ -124,7 +153,11 @@ public class FileController {
         }
     }
 
-    // 删除文件/文件夹
+    /*
+
+     删除文件/文件夹
+
+     */
     @DeleteMapping("/deleteFileOrDir/{fid}")
     public Result deleteFileOrDirectory(
             @RequestParam("fid") Long fid,
