@@ -119,23 +119,39 @@
     const error = validationRules[field](form[field])
     errors[field] = error ||''
   }
-  
-  const handleSubmit = async () => {
+    const handleSubmit = async () => {
     try {
       Object.keys(form).forEach(validateField)
       const hasErrors = Object.values(errors).some(Boolean)
       if (hasErrors) {
-      registerError.value = '请正确填写所有必填字段'
-      return
-    }
+        registerError.value = '请正确填写所有必填字段'
+        return
+      }
+      
       isSubmitting.value = true
-      const response = await authStore.register({userName:form.userName, password:form.password, email:form.email})
-      console.log(response)
-      if (response.data.success){
+      const response = await authStore.register({
+        userName: form.userName, 
+        password: form.password, 
+        email: form.email
+      })
+      
+      console.log('注册响应:', response)
+      
+      // 修复响应处理逻辑
+      if (response && response.data) {
+        // 注册成功，跳转到登录页
         router.push('/login')
+      } else {
+        registerError.value = '注册失败，请重试'
       }
     } catch (error) {
-      registerError.value = error.response.data || '注册失败'
+      console.error('注册错误:', error)
+      // 修复错误处理逻辑
+      if (error.response && error.response.data) {
+        registerError.value = error.response.data.message || error.response.data || '注册失败'
+      } else {
+        registerError.value = error.message || '注册失败，请重试'
+      }
     } finally {
       isSubmitting.value = false
     }

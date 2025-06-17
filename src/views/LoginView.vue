@@ -94,12 +94,13 @@
     if (hasErrors) {
       loginError.value = errors||'请正确填写所有必填字段'
       return
-    }
-    isSubmitting.value = true
+    }    isSubmitting.value = true
     loginError.value = null
     const response = await authStore.login(form)
     form.password = ''
-    const redirectPath = '/mainweb/resource'
+    
+    // 处理登录后的重定向
+    const redirectPath = router.currentRoute.value.query.redirect || '/mainweb/resource'
     router.push(redirectPath)
     
   } catch (error) {

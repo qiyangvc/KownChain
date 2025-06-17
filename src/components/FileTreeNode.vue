@@ -3,28 +3,24 @@
     <div 
       class="node-content" 
       @click="handleNodeClick"
-      @contextmenu="handleContextMenu"
-      :class="{ 
-        'is-folder': node.isDir, 
-        'is-file': !node.isDir
+      @contextmenu="handleContextMenu"      :class="{ 
+        'is-folder': isDirectory, 
+        'is-file': !isDirectory
       }"
-    >
-      <!-- 文件/文件夹图标 -->
+    >      <!-- 文件/文件夹图标 -->
       <span class="icon">
-        <i v-if="node.isDir" :class="expanded ? 'folder-open' : 'folder'"></i>
-        <i v-else :class="getFileIcon(node.fName)"></i>
+        <i v-if="isDirectory" :class="expanded ? 'folder-open' : 'folder'"></i>
+        <i v-else :class="getFileIcon(fileName)"></i>
       </span>
       
       <!-- 文件/文件夹名称 -->
-      <span class="name">{{ node.fName }}</span>
-    </div>
-    
-    <!-- 子节点，仅在文件夹被展开时显示 -->
-    <div v-if="node.isDir && expanded && node.children?.length" class="children">
-      <file-tree-node
+      <span class="name">{{ fileName }}</span>
+    </div>    <!-- 子节点，仅在文件夹被展开时显示 -->
+    <div v-if="isDirectory && expanded && node.children?.length" class="children">      <file-tree-node
         v-for="child in node.children"
-        :key="child.fid"
+        :key="child.fid || child.id || child.fname || child.fName"
         :node="child"
+        :level="level + 1"
         @node-click="onChildClick"
         @node-context-menu="onChildContextMenu"
       />
@@ -33,24 +29,37 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
   node: {
     type: Object,
     required: true
+  },
+  level: {
+    type: Number,
+    default: 0
   }
 });
 
 const emit = defineEmits(['node-click', 'node-context-menu']);
 
-// 控制文件夹展开/收起状态
-const expanded = ref(false);
+// 控制文件夹展开/收起状态 - 第一层文件夹默认展开
+const expanded = ref(props.level === 0 && (props.node.isDir || props.node.dir));
+
+// 处理不同字段名格式的计算属性
+const fileName = computed(() => {
+  return props.node.fName || props.node.fname || props.node.name || '';
+});
+
+const isDirectory = computed(() => {
+  return props.node.isDir || props.node.dir || false;
+});
 
 // 处理节点点击事件
 const handleNodeClick = () => {
   // 如果是文件夹，切换展开状态
-  if (props.node.isDir) {
+  if (isDirectory.value) {
     expanded.value = !expanded.value;
   }
   
@@ -62,14 +71,14 @@ const handleNodeClick = () => {
 const handleContextMenu = (event) => {
   // 阻止默认右键菜单
   event.preventDefault();
+  // 阻止事件冒泡，防止被父级容器的右键事件覆盖
+  event.stopPropagation();
   
-  // 如果不是文件夹，则触发右键菜单事件
-  if (!props.node.isDir) {
-    emit('node-context-menu', {
-      node: props.node,
-      event: event
-    });
-  }
+  // 触发右键菜单事件，无论是文件还是文件夹都应该触发
+  emit('node-context-menu', {
+    node: props.node,
+    event: event
+  });
 };
 
 // 从子节点传递点击事件
@@ -84,6 +93,7 @@ const onChildContextMenu = (data) => {
 
 // 根据文件名获取对应的图标类名
 const getFileIcon = (fileName) => {
+  if (!fileName || typeof fileName !== 'string') return 'file-default';
   if (fileName.endsWith('.md')) return 'file-md';
   if (fileName.endsWith('.pdf')) return 'file-pdf';
   if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) return 'file-doc';

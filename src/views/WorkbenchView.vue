@@ -12,13 +12,22 @@
           <span>加载中...</span>
         </div>
         <div v-else-if="treeError" class="error-message">
-          {{ treeError }}
-        </div>
-        <div v-else class="tree-container">
+          {{ treeError }}        </div>        <div v-else class="tree-container" @click="closeContextMenu">
+          <div class="tree-header">
+            <h3>文件管理</h3>            <div class="tree-actions">
+              <button class="action-btn" @click="openCreateDialog('folder', null)" title="新建文件夹">
+                <span class="icon">📁</span>
+              </button>
+              <button class="action-btn" @click="openCreateDialog('file', null)" title="新建文件">
+                <span class="icon">📄</span>
+              </button>
+            </div>
+          </div>
           <file-tree-node 
             v-for="item in resourceTree" 
             :key="item.fid" 
             :node="item" 
+            :level="0"
             @node-click="handleNodeClick"
             @node-context-menu="handleNodeContextMenu"
           />
@@ -31,9 +40,8 @@
       <!-- 中间链接预览区域 - 仅在有预览内容时显示 -->
       <template v-if="previewFile">
         <div class="preview-panel" :style="{ width: previewPanelWidth + 'px' }">
-          <div class="preview-header">
-            <div class="preview-title">
-              <h3>预览: {{ previewFile.fName }}</h3>
+          <div class="preview-header">            <div class="preview-title">
+              <h3>预览: {{ previewFileName }}</h3>
               <span class="preview-path">{{ previewFile.URL }}</span>
             </div>
             <button class="close-button preview-close" @click="closePreview" title="关闭预览">
@@ -58,9 +66,8 @@
         <div v-if="!currentFile" class="empty-state">
           <p>选择一个文件以查看或编辑内容</p>
         </div>
-        <div v-else>
-          <div class="file-header">
-            <h2>{{ currentFile.fName }}</h2>
+        <div v-else>          <div class="file-header">
+            <h2>{{ currentFileName }}</h2>
             <div class="file-actions">
               <button 
                 v-if="!isEditing" 
@@ -112,30 +119,93 @@
           </div>
         </div>
       </div>
+    </div>    <!-- 文件右键菜单 -->
+    <div v-if="showContextMenu" class="context-menu" :style="contextMenuStyle">
+      <!-- 文件操作 - 只在文件上右键时显示 -->
+      <template v-if="selectedNode && !selectedNode.isDir && !selectedNode.dir">
+        <div class="menu-item" @click="copyFileUrl">
+          <span class="menu-icon">📋</span> 复制Markdown链接
+        </div>
+        <div class="menu-item" @click="openFile">
+          <span class="menu-icon">📄</span> 打开文件
+        </div>
+        <div class="menu-item" @click="previewFileFromMenu">
+          <span class="menu-icon">👁️</span> 预览文件
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item danger" @click="deleteItem">
+          <span class="menu-icon">🗑️</span> 删除文件
+        </div>
+      </template>
+      
+      <!-- 文件夹操作 - 在文件夹上右键时显示 -->
+      <template v-else>
+        <div class="menu-item" @click="openCreateDialog('folder', selectedNode)">
+          <span class="menu-icon">📁</span> 新建文件夹
+        </div>
+        <div class="menu-item" @click="openCreateDialog('file', selectedNode)">
+          <span class="menu-icon">📄</span> 新建文件
+        </div>
+        <div v-if="selectedNode" class="menu-divider"></div>
+        <div v-if="selectedNode" class="menu-item danger" @click="deleteItem">
+          <span class="menu-icon">🗑️</span> 删除文件夹
+        </div>
+      </template>
+    </div>
+      <!-- 新建文件/文件夹对话框 -->
+    <div v-if="showCreateDialog" class="modal-overlay" @click="cancelCreate">
+      <div class="create-dialog" @click.stop>
+        <h3>{{ createDialogTitle }}</h3>
+        <input 
+          v-model="newItemName" 
+          :placeholder="createDialogPlaceholder"
+          @keyup.enter="confirmCreate"
+          @keyup.escape="cancelCreate"
+          ref="createInput"
+          class="create-input"
+        />
+        <div class="dialog-buttons">
+          <button @click="confirmCreate" class="btn-primary">创建</button>
+          <button @click="cancelCreate" class="btn-secondary">取消</button>
+        </div>
+        <div v-if="createError" class="error-message">{{ createError }}</div>
+      </div>
     </div>
     
-    <!-- 文件右键菜单 -->
-    <div v-if="showContextMenu" class="context-menu" :style="contextMenuStyle">
-      <div class="menu-item" @click="copyFileUrl">
-        <span class="menu-icon">📋</span> 复制Markdown链接
-      </div>
-      <div class="menu-item" @click="openFile">
-        <span class="menu-icon">📄</span> 打开文件
-      </div>
-      <div class="menu-item" @click="previewFileFromMenu">
-        <span class="menu-icon">👁️</span> 预览文件
+    <!-- 删除确认对话框 -->
+    <div v-if="showDeleteDialog" class="modal-overlay" @click="cancelDelete">
+      <div class="delete-dialog" @click.stop>
+        <h3>确认删除</h3>
+        <p v-if="deleteItemToDelete">
+          您确定要删除"{{ deleteItemToDelete.fName || deleteItemToDelete.fname || deleteItemToDelete.name }}"吗？
+          <br>
+          <span class="warning-text">此操作不可撤销！</span>
+        </p>
+        <div class="dialog-buttons">
+          <button @click="confirmDelete" class="btn-danger">删除</button>
+          <button @click="cancelDelete" class="btn-secondary">取消</button>
+        </div>
+        <div v-if="deleteError" class="error-message">{{ deleteError }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, onUnmounted, nextTick } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { marked } from 'marked'; 
 import FileTreeNode from '@/components/FileTreeNode.vue';
 import Resizer from '@/components/Resizer.vue';
 import authApi from '@/api/auth';
+
+// 配置marked选项
+marked.setOptions({
+  breaks: true,    // 支持换行符转换为<br>
+  gfm: true,       // 支持GitHub风格的Markdown
+  headerIds: false, // 禁用标题ID，避免重复ID问题
+  mangle: false,   // 禁用标题锚点混淆
+});
 
 const store = useAuthStore();
 
@@ -152,6 +222,20 @@ const contextMenuStyle = ref({
   left: '0px'
 });
 const selectedNode = ref(null);
+
+// 新建文件/文件夹对话框状态
+const showCreateDialog = ref(false);
+const newItemName = ref('');
+const createDialogTitle = ref('');
+const createDialogPlaceholder = ref('');
+const createError = ref('');
+const createInput = ref(null);
+const isCreatingDirectory = ref(false);
+
+// 删除确认对话框状态
+const showDeleteDialog = ref(false);
+const deleteItemToDelete = ref(null);
+const deleteError = ref('');
 
 // 预览状态
 const previewFile = ref(null);
@@ -188,34 +272,82 @@ const isLoadingContent = computed(() => store.isLoadingContent);
 const treeError = computed(() => store.treeError);
 const contentError = computed(() => store.contentError);
 
+// 判断选中的节点是否为目录
+const isSelectedNodeDirectory = computed(() => {
+  if (!selectedNode.value) return false;
+  return selectedNode.value.isDir || selectedNode.value.dir || false;
+});
+
 // 判断是否为可编辑文件
 const isEditableFile = computed(() => {
   if (!currentFile.value) return false;
-  const extension = currentFile.value.fName.split('.').pop().toLowerCase();
-  return ['md', 'txt', 'json', 'html', 'css', 'js', 'vue'].includes(extension);
+  const fileName = currentFile.value.fName || currentFile.value.fname || '';
+  if (!fileName || typeof fileName !== 'string') return false;
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  return ['md', 'txt', 'json', 'html', 'css', 'js', 'vue'].includes(extension || '');
+});
+
+// 安全获取当前文件名
+const currentFileName = computed(() => {
+  if (!currentFile.value) return '';
+  return currentFile.value.fName || currentFile.value.fname || '未知文件';
+});
+
+// 安全获取预览文件名
+const previewFileName = computed(() => {
+  if (!previewFile.value) return '';
+  return previewFile.value.fName || previewFile.value.fname || '未知文件';
 });
 
 // 渲染Markdown内容
 const renderedContent = computed(() => {
   if (!store.currentFileContent) return '';
-  if (currentFile.value && currentFile.value.fName.toLowerCase().endsWith('.md')) {
-    return marked(store.currentFileContent);
+  if (currentFile.value) {
+    const fileName = currentFile.value.fName || currentFile.value.fname || '';
+    if (fileName && fileName.toLowerCase().endsWith('.md')) {
+      return marked(store.currentFileContent);
+    }
   }
   return `<pre>${store.currentFileContent}</pre>`;
 });
 
 // 渲染预览内容
 const renderedPreviewContent = computed(() => {
+  console.log('渲染预览内容:', previewContent.value ? previewContent.value.substring(0, 100) : 'null');
+  console.log('预览文件信息:', previewFile.value);
+  
   if (!previewContent.value) return '';
-  if (previewFile.value && previewFile.value.fName.toLowerCase().endsWith('.md')) {
-    return marked(previewContent.value);
+  
+  // 默认尝试作为Markdown渲染，因为大多数文档都是Markdown格式
+  let shouldRenderAsMarkdown = true;
+  
+  if (previewFile.value) {
+    const fileName = previewFile.value.fName || previewFile.value.fname || '';
+    console.log('文件名:', fileName);
+    
+    // 只有明确不是Markdown文件时才不渲染为Markdown
+    if (fileName && !fileName.toLowerCase().endsWith('.md') && !fileName.toLowerCase().includes('markdown')) {
+      shouldRenderAsMarkdown = false;
+    }
   }
-  return `<pre>${previewContent.value}</pre>`;
+  
+  if (shouldRenderAsMarkdown) {
+    console.log('作为Markdown渲染');
+    try {
+      return marked(previewContent.value);
+    } catch (error) {
+      console.error('Markdown渲染错误:', error);
+      return `<pre>${previewContent.value}</pre>`;
+    }
+  } else {
+    console.log('作为纯文本渲染');
+    return `<pre>${previewContent.value}</pre>`;
+  }
 });
 
 // 处理文件节点点击
 const handleNodeClick = async (node) => {
-  if (node.isDir) return; // 如果是目录，不进行操作
+  if (node.isDir || node.dir) return; // 如果是目录，不进行操作
   
   // 如果正在编辑，提示用户保存或取消
   if (isEditing.value) {
@@ -228,10 +360,11 @@ const handleNodeClick = async (node) => {
   // 设置当前文件
   store.setCurrentFile(node);
   
-  // 如果有URL，获取文件内容
-  if (node.URL) {
+  // 使用文件ID获取文件内容
+  const fileId = node.fid || node.id || node.URL;
+  if (fileId) {
     try {
-      await store.fetchFileContent(node.URL);
+      await store.fetchFileContent(fileId);
     } catch (error) {
       console.error('获取文件内容失败', error);
     }
@@ -240,6 +373,14 @@ const handleNodeClick = async (node) => {
 
 // 处理文件节点右键点击
 const handleNodeContextMenu = (data) => {
+  console.log('右键点击节点:', data.node);
+  console.log('节点名称:', data.node.fName || data.node.fname || data.node.name || '未知');
+  console.log('节点是否为目录:', data.node.isDir || data.node.dir || false);
+  console.log('节点ID:', data.node.fid || data.node.id);
+  
+  // 阻止事件继续传播到tree-container
+  data.event.stopPropagation();
+  
   // 显示右键菜单
   showContextMenu.value = true;
   selectedNode.value = data.node;
@@ -251,11 +392,13 @@ const handleNodeContextMenu = (data) => {
   };
 };
 
+
+
 // 复制文件URL到剪贴板
 const copyFileUrl = () => {
   if (selectedNode.value && selectedNode.value.URL) {
     const fileUrl = selectedNode.value.URL;
-    const fileName = selectedNode.value.fName;
+    const fileName = selectedNode.value.fName || selectedNode.value.fname || 'unknown';
     // 生成Markdown格式的链接
     const markdownLink = `[${fileName}](${fileUrl})`;
     
@@ -299,37 +442,235 @@ const closeContextMenu = () => {
   selectedNode.value = null;
 };
 
+// 显示创建对话框
+const openCreateDialog = (type, parentNode) => {
+  closeContextMenu();
+  
+  console.log('openCreateDialog - 类型:', type, '父节点:', parentNode);
+  
+  if (type === 'folder') {
+    isCreatingDirectory.value = true;
+    createDialogTitle.value = '新建文件夹';
+    createDialogPlaceholder.value = '请输入文件夹名称';
+  } else {
+    isCreatingDirectory.value = false;
+    createDialogTitle.value = '新建文件';
+    createDialogPlaceholder.value = '请输入文件名（如：note.md）';
+  }
+  
+  // 设置父节点（如果parentNode为null，则在根目录创建）
+  selectedNode.value = parentNode;
+  console.log('设置selectedNode为:', selectedNode.value);
+  
+  newItemName.value = '';
+  createError.value = '';
+  showCreateDialog.value = true;
+  
+  // 等待DOM更新后聚焦输入框
+  nextTick(() => {
+    if (createInput.value) {
+      createInput.value.focus();
+    }
+  });
+};
+
+// 确认创建
+const confirmCreate = async () => {
+  if (!newItemName.value.trim()) {
+    createError.value = '名称不能为空';
+    return;
+  }
+  
+  try {
+    createError.value = '';
+    
+    // 确定父级ID - 添加调试信息
+    let parentId = null;
+    console.log('选中的节点:', selectedNode.value);
+    
+    if (selectedNode.value) {
+      const isDirectory = selectedNode.value.isDir || selectedNode.value.dir;
+      console.log('是否为目录:', isDirectory);
+      
+      if (isDirectory) {
+        // 在选中的文件夹下创建
+        parentId = selectedNode.value.fid || selectedNode.value.id || selectedNode.value.URL;
+        console.log('设置父级ID:', parentId);
+      } else {
+        console.log('选中的是文件，不应该创建子项');
+        createError.value = '无法在文件下创建内容';
+        return;
+      }
+    } else {
+      console.log('在根目录创建');
+    }
+    
+    console.log('创建参数:', {
+      fileName: newItemName.value.trim(),
+      parentId: parentId,
+      isDirectory: isCreatingDirectory.value
+    });
+    
+    // 调用API创建文件或文件夹
+    await authApi.createFile(newItemName.value.trim(), parentId, isCreatingDirectory.value);
+    
+    // 创建成功后刷新文件树
+    await store.fetchResourceTree();
+    
+    // 关闭对话框
+    showCreateDialog.value = false;
+    
+  } catch (error) {
+    console.error('创建失败:', error);
+    createError.value = error.message || '创建失败';
+  }
+};
+
+// 取消创建
+const cancelCreate = () => {
+  showCreateDialog.value = false;
+  newItemName.value = '';
+  createError.value = '';
+};
+
+// 删除文件/文件夹
+const deleteItem = () => {
+  if (!selectedNode.value) {
+    console.error('没有选中的节点');
+    return;
+  }
+  
+  console.log('准备删除:', selectedNode.value);
+  deleteItemToDelete.value = selectedNode.value;
+  deleteError.value = '';
+  showDeleteDialog.value = true;
+  
+  // 在设置删除项后再关闭右键菜单
+  closeContextMenu();
+};
+
+// 确认删除
+const confirmDelete = async () => {
+  if (!deleteItemToDelete.value) {
+    console.error('没有要删除的项目');
+    return;
+  }
+  
+  try {
+    deleteError.value = '';
+    
+    const itemId = deleteItemToDelete.value.fid || deleteItemToDelete.value.id || deleteItemToDelete.value.URL;
+    const itemName = deleteItemToDelete.value.fName || deleteItemToDelete.value.fname || deleteItemToDelete.value.name;
+    const isDirectory = deleteItemToDelete.value.isDir || deleteItemToDelete.value.dir;
+    
+    console.log('删除项目:', {
+      id: itemId,
+      name: itemName,
+      isDirectory: isDirectory
+    });
+    
+    // 调用API删除文件或文件夹
+    await authApi.deleteFile(itemId, isDirectory);
+    
+    // 删除成功后刷新文件树
+    await store.fetchResourceTree();
+    
+    // 如果删除的是当前打开的文件，清空内容区域
+    if (store.currentFile && 
+        (store.currentFile.fid === itemId || 
+         store.currentFile.id === itemId || 
+         store.currentFile.URL === itemId)) {
+      store.setCurrentFile(null);
+      store.currentFileContent = '';
+    }
+    
+    // 关闭对话框
+    showDeleteDialog.value = false;
+    deleteItemToDelete.value = null;
+    
+  } catch (error) {
+    console.error('删除失败:', error);
+    deleteError.value = error.message || '删除失败';
+  }
+};
+
+// 取消删除
+const cancelDelete = () => {
+  showDeleteDialog.value = false;
+  deleteItemToDelete.value = null;
+  deleteError.value = '';
+};
+
 // 处理内容区域点击，用于链接预览
 const handleContentClick = async (event) => {
   // 检查是否点击的是链接
   if (event.target.tagName === 'A') {
     event.preventDefault();
     const url = event.target.getAttribute('href');
+    console.log('点击链接:', url);
     
     // 尝试在文件树中查找匹配的文件
     const file = findFileByUrl(url);
     if (file) {
+      console.log('找到文件:', file);
       await loadPreview(file);
     } else {
-      // 如果找不到文件，可以尝试直接加载URL内容
-      previewFile.value = { fName: url.split('/').pop(), URL: url };
-      await loadPreviewContent(url);
+      console.log('未找到文件，尝试直接加载:', url);
+      // 如果找不到文件，检查是否是纯数字ID
+      if (/^\d+$/.test(url)) {
+        // 数字ID，尝试加载
+        previewFile.value = { fName: `文件${url}`, fid: url };
+        await loadPreviewContent(url);
+      } else {
+        // 文件名，设置一个默认的预览文件信息
+        previewFile.value = { fName: url, URL: url };
+        await loadPreviewContent(url);
+      }
     }
   }
 };
 
 // 在文件树中查找匹配URL的文件
 const findFileByUrl = (url) => {
+  console.log('搜索文件:', url);
+  
   // 递归搜索函数
   const searchInTree = (nodes) => {
     if (!nodes) return null;
     
     for (const node of nodes) {
-      if (!node.isDir && node.URL === url) {
-        return node;
+      const nodeId = node.fid || node.id || node.URL;
+      const fileName = node.fName || node.fname || '';
+      
+      if (!node.isDir && !node.dir) {
+        console.log('检查文件:', fileName, 'ID:', nodeId);
+        
+        // 1. 精确匹配ID或URL
+        if (nodeId && nodeId.toString() === url.toString()) {
+          console.log('ID匹配成功:', nodeId);
+          return node;
+        }
+        
+        // 2. 匹配文件名（完全匹配）
+        if (fileName === url) {
+          console.log('文件名完全匹配:', fileName);
+          return node;
+        }
+        
+        // 3. 匹配文件名（忽略.md扩展名）
+        if (fileName.endsWith('.md') && fileName.replace('.md', '') === url.replace('.md', '')) {
+          console.log('文件名匹配（忽略扩展名）:', fileName);
+          return node;
+        }
+        
+        // 4. 如果url不包含.md，尝试添加.md匹配
+        if (!url.includes('.md') && fileName === url + '.md') {
+          console.log('添加.md扩展名匹配:', fileName);
+          return node;
+        }
       }
       
-      if (node.isDir && node.children) {
+      if ((node.isDir || node.dir) && node.children) {
         const found = searchInTree(node.children);
         if (found) return found;
       }
@@ -338,23 +679,45 @@ const findFileByUrl = (url) => {
     return null;
   };
   
-  return searchInTree(resourceTree.value);
+  const result = searchInTree(resourceTree.value);
+  console.log('搜索结果:', result);
+  return result;
 };
 
 // 加载预览文件
 const loadPreview = async (file) => {
   previewFile.value = file;
-  await loadPreviewContent(file.URL);
+  const fileId = file.fid || file.id || file.URL;
+  await loadPreviewContent(fileId);
 };
 
 // 加载预览内容
-const loadPreviewContent = async (url) => {
+const loadPreviewContent = async (fileId) => {
   isLoadingPreview.value = true;
   previewError.value = '';
+  console.log('加载预览内容，文件ID:', fileId);
   
   try {
-    const response = await authApi.getFileContent(url);
+    const response = await authApi.getFileContent(fileId);
     previewContent.value = response.data;
+    console.log('文件内容加载成功，长度:', response.data ? response.data.length : 0);
+    
+    // 如果previewFile还没有完整信息，尝试从文件树中查找
+    if (previewFile.value && (!previewFile.value.fName && !previewFile.value.fname)) {
+      console.log('尝试从文件树中查找文件信息');
+      const foundFile = findFileById(fileId);
+      if (foundFile) {
+        console.log('找到完整文件信息:', foundFile);
+        previewFile.value = foundFile;
+      } else {
+        // 如果还是找不到，设置一个默认的.md文件名
+        console.log('未找到文件信息，设置默认.md文件名');
+        previewFile.value = {
+          ...previewFile.value,
+          fName: `文件${fileId}.md`
+        };
+      }
+    }
   } catch (error) {
     console.error('加载预览内容失败', error);
     previewError.value = `加载预览内容失败: ${error.message || '未知错误'}`;
@@ -362,6 +725,28 @@ const loadPreviewContent = async (url) => {
   } finally {
     isLoadingPreview.value = false;
   }
+};
+
+// 根据ID查找文件
+const findFileById = (fileId) => {
+  const searchInTree = (nodes) => {
+    if (!nodes) return null;
+    
+    for (const node of nodes) {
+      const nodeId = node.fid || node.id || node.URL;
+      if (nodeId && nodeId.toString() === fileId.toString()) {
+        return node;
+      }
+      
+      if ((node.isDir || node.dir) && node.children) {
+        const found = searchInTree(node.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  
+  return searchInTree(resourceTree.value);
 };
 
 // 关闭预览
@@ -380,16 +765,22 @@ const startEditing = () => {
 };
 
 // 保存文件内容
-const saveContent = async () => {
-  if (!currentFile.value || !currentFile.value.URL) {
-    saveError.value = '无法保存文件：文件信息不完整';
+const saveContent = async () => {  if (!currentFile.value) {
+    saveError.value = '无法保存文件：没有选中的文件';
+    return;
+  }
+  
+  // 获取文件ID，支持多种字段名
+  const fileId = currentFile.value.fid || currentFile.value.id || currentFile.value.URL;
+  if (!fileId) {
+    saveError.value = '无法保存文件：文件ID不存在';
     return;
   }
   
   try {
     saveStatus.value = '保存中...';
     // 使用API保存文件内容
-    await authApi.saveFileContent(currentFile.value.URL, editableContent.value);
+    await authApi.saveFileContent(fileId, editableContent.value);
     
     // 更新store中的文件内容
     store.updateCurrentFileContent(editableContent.value);
@@ -462,17 +853,44 @@ const handlePreviewResize = (deltaX) => {
 
 // 挂载时添加全局点击事件监听
 onMounted(async () => {
+  console.log('WorkbenchView: 组件挂载')
   document.addEventListener('click', handleGlobalClick);
+  
+  console.log('WorkbenchView: 开始获取资源树')
   try {
     await store.fetchResourceTree();
+    console.log('WorkbenchView: 资源树获取成功')
   } catch (error) {
-    console.error('获取资源树失败', error);
+    console.error('WorkbenchView: 获取资源树失败', error);
+    // 不阻止页面渲染，只记录错误
   }
 });
 
 // 卸载前移除事件监听
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleGlobalClick);
+});
+
+// 组件卸载时清理状态
+onUnmounted(() => {
+  console.log('WorkbenchView: 组件卸载，清理状态')
+  // 清理编辑状态
+  isEditing.value = false;
+  editableContent.value = '';
+  saveStatus.value = '';
+  saveError.value = '';
+  
+  // 清理预览状态
+  previewFile.value = null;
+  previewContent.value = '';
+  previewError.value = '';
+  
+  // 清理右键菜单状态
+  showContextMenu.value = false;
+  selectedNode.value = null;
+  
+  // 清理当前文件状态
+  store.closeCurrentFile();
 });
 </script>
 
@@ -586,6 +1004,20 @@ onBeforeUnmount(() => {
 
 .menu-item:hover {
   background-color: #f5f5f5;
+}
+
+.menu-item.danger {
+  color: #dc3545;
+}
+
+.menu-item.danger:hover {
+  background-color: #f8d7da;
+}
+
+.menu-divider {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 4px 0;
 }
 
 .menu-icon {
@@ -798,12 +1230,174 @@ onBeforeUnmount(() => {
 
 .close-button:hover {
   background-color: #f44336;
+  color: white;  border-color: #f44336;
+}
+
+/* 菜单分隔线 */
+.menu-divider {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 5px 0;
+}
+
+/* 新建文件/文件夹对话框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.create-dialog {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  min-width: 400px;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.create-dialog h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.create-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+
+.create-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.btn-primary {
+  background-color: #4CAF50;
   color: white;
-  border-color: #f44336;
+}
+
+.btn-primary:hover {
+  background-color: #45a049;
+}
+
+.btn-secondary {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+  background-color: #e9e9e9;
+}
+
+/* 删除对话框样式 */
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+}
+
+.delete-dialog {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+}
+
+.delete-dialog h3 {
+  margin-top: 0;
+  color: #dc3545;
+}
+
+.warning-text {
+  color: #dc3545;
+  font-weight: bold;
+  font-size: 14px;
 }
 
 /* 修正Resizer在预览面板和右侧内容之间的显示层级 */
 :deep(.resizer) {
   z-index: 2;
+}
+
+/* 树形结构头部样式 */
+.tree-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+}
+
+.tree-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.tree-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  background-color: #e9ecef;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+  background-color: #dee2e6;
+}
+
+.action-btn .icon {
+  font-size: 16px;
 }
 </style>

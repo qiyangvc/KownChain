@@ -23,6 +23,17 @@
           <span v-else class="icon">📊</span>
         </router-link>
       </nav>
+      
+      <!-- 用户信息和登出 -->
+      <div class="user-section">
+        <div v-if="!isSidebarCollapsed && authStore.user" class="user-info">
+          <span class="username">{{ authStore.user.username }}</span>
+        </div>
+        <button @click="handleLogout" class="logout-btn" :title="isSidebarCollapsed ? '登出' : ''">
+          <span v-if="!isSidebarCollapsed">登出</span>
+          <span v-else class="icon">🚪</span>
+        </button>
+      </div>
     </div>
     
     <!-- 右侧工作区 -->
@@ -34,6 +45,11 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+
+const router = useRouter();
+const authStore = useAuthStore();
 
 // 控制侧边栏展开/收起的状态
 const isSidebarCollapsed = ref(false);
@@ -41,6 +57,12 @@ const isSidebarCollapsed = ref(false);
 // 切换侧边栏状态的方法
 const toggleSidebar = () => {
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
+};
+
+// 处理登出
+const handleLogout = () => {
+  authStore.logout();
+  router.push('/login');
 };
 </script>
 
@@ -176,5 +198,46 @@ const toggleSidebar = () => {
   overflow-y: auto;
   background-color: #ffffff; /* 添加白色背景 */
   color: #000000; /* 添加黑色文本颜色 */
+}
+
+/* 用户区域样式 */
+.user-section {
+  margin-top: auto;
+  padding: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.user-info {
+  margin-bottom: 10px;
+  padding: 8px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.username {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.logout-btn:hover {
+  background-color: #c82333;
+}
+
+.sidebar.collapsed .logout-btn {
+  padding: 8px;
+  text-align: center;
 }
 </style>

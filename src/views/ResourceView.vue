@@ -13,12 +13,12 @@
         </div>
         <div v-else-if="treeError" class="error-message">
           {{ treeError }}
-        </div>
-        <div v-else class="tree-container">
+        </div>        <div v-else class="tree-container">
           <file-tree-node 
             v-for="item in resourceTree" 
             :key="item.fid" 
             :node="item" 
+            :level="0"
             @node-click="handleNodeClick"
           />
         </div>
@@ -32,9 +32,8 @@
         <div v-if="!currentFile" class="empty-state">
           <p>选择一个文件以查看内容</p>
         </div>
-        <div v-else>
-          <div class="file-header">
-            <h2>{{ currentFile.fName }}</h2>
+        <div v-else>          <div class="file-header">
+            <h2>{{ currentFileName }}</h2>
             <button class="close-button" @click="closeFile" title="关闭文件">
               <span>×</span>
             </button>
@@ -55,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { marked } from 'marked'; 
 import FileTreeNode from '@/components/FileTreeNode.vue';
@@ -98,6 +97,12 @@ const isLoadingContent = computed(() => store.isLoadingContent);
 const treeError = computed(() => store.treeError);
 const contentError = computed(() => store.contentError);
 
+// 安全获取当前文件名
+const currentFileName = computed(() => {
+  if (!currentFile.value) return '';
+  return currentFile.value.fName || currentFile.value.fname || '未知文件';
+});
+
 // 渲染Markdown内容
 const renderedContent = computed(() => {
   if (!store.currentFileContent) return '';
@@ -106,15 +111,16 @@ const renderedContent = computed(() => {
 
 // 处理文件节点点击
 const handleNodeClick = async (node) => {
-  if (node.isDir) return; // 如果是目录，不进行操作
+  if (node.isDir || node.dir) return; // 如果是目录，不进行操作
   
   // 设置当前文件
   store.setCurrentFile(node);
   
-  // 如果有URL，获取文件内容
-  if (node.URL) {
+  // 使用文件ID获取文件内容
+  const fileId = node.fid || node.id || node.URL;
+  if (fileId) {
     try {
-      await store.fetchFileContent(node.URL);
+      await store.fetchFileContent(fileId);
     } catch (error) {
       console.error('获取文件内容失败', error);
     }
@@ -128,11 +134,22 @@ const closeFile = () => {
 
 // 组件挂载时获取资源树
 onMounted(async () => {
+  console.log('ResourceView: 组件挂载，开始获取资源树')
   try {
     await store.fetchResourceTree();
+    console.log('ResourceView: 资源树获取成功')
   } catch (error) {
-    console.error('获取资源树失败', error);
+    console.error('ResourceView: 获取资源树失败', error);
+    // 不阻止页面渲染，只记录错误
   }
+});
+
+// 组件卸载时清理状态
+onUnmounted(() => {
+  console.log('ResourceView: 组件卸载，清理状态')
+  // 不清理资源树，因为其他页面可能需要
+  // 只清理当前文件状态
+  store.closeCurrentFile();
 });
 </script>
 
