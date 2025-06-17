@@ -34,6 +34,10 @@ public interface FileMapper {
     FileAndDirTable getByUIDandFNameandNULLParentFID(@Param("userid") BigInteger userid,
                                                      @Param("fname") String fname);
 
+    // 根据parentFID选择表,相当于将文件夹下所有文件/文件夹进行选择
+    @Select("SELECT * FROM fileanddirtable WHERE parentFID = #{parentfid}")
+    List<FileAndDirTable> getByParentFID(@Param("parentfid") BigInteger parentfid);
+
 
     // 上传文件后插入一条
     @Insert("INSERT INTO fileanddirtable (fName, URL, parentFID, isDir, userID) VALUES (#{fname}, #{url}, #{parentfid}, #{isdir}, #{userid})")

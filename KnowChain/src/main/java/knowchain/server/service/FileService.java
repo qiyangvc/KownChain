@@ -3,7 +3,6 @@ package knowchain.server.service;
 import knowchain.common.result.Result;
 import knowchain.pojo.VO.FileAndDirItem;
 import knowchain.pojo.entity.FileAndDirTable;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -28,7 +27,47 @@ public interface FileService {
      * @return
      */
     Result<String> uploadFile(MultipartFile file,
-                             BigInteger parentfid,
-                             BigInteger userid) throws IOException, SecurityException;
+                              BigInteger parentfid,
+                              BigInteger userid) throws IOException, SecurityException, IllegalStateException;
+
+
+    /**
+     * 新建文件夹
+     * @param name 文件夹名
+     * @param parentFID 父目录fID
+     * @return 创建文件夹是否成功结果
+     */
+    Result<String> addDirectory(String name,
+                                BigInteger parentFID,
+                                BigInteger userID) throws SecurityException;
+
+
+    /**
+     * 重命名文件或文件夹
+     * @param fid 文件/文件夹ID
+     * @param newName 新名称
+     * @return 重命名结果
+     */
+    Result<String> renameFileOrDirectory(BigInteger fid,
+                                         String newName) throws SecurityException, NullPointerException;
+
+
+    /**
+     * 修改文件或文件夹位置
+     * @param fid 文件/文件夹ID
+     * @param parentFID 要移动到的父目录ID
+     * @param userID 用户ID
+     * @return 移动结果
+     */
+    Result<String> changeFileOrDirPosition(BigInteger fid, BigInteger parentFID, BigInteger userID) throws SecurityException, NullPointerException;
+
+
+    /**
+     * 删除文件或文件夹
+     * @param fid 文件/文件夹ID
+     * @return 删除结果
+     */
+    Result<String> deleteFileOrDirectory(BigInteger fid) throws SecurityException;
+
 
 }

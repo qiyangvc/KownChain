@@ -1,6 +1,5 @@
 package knowchain.server.controller;
 
-import knowchain.common.constant.FileConstant;
 import knowchain.common.result.Result;
 import knowchain.pojo.VO.FileAndDirItem;
 import knowchain.pojo.entity.FileAndDirTable;
@@ -12,11 +11,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.FileInputStream;
 import java.math.BigInteger;
-import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+
+import static knowchain.common.constant.MessageConstant.*;
 
 
 @Slf4j
@@ -38,32 +38,50 @@ public class FileController {
     @GetMapping("/getAll/{userID}")
     public Result<List<FileAndDirItem>> getFileAndDirList(@PathVariable String userID){
 
-        List<FileAndDirTable> fileTables = fileMapper.getByUserID(new BigInteger(userID));
-        List<FileAndDirItem> fileTrees = fileService.generateFileAndDirList(fileTables);
+        try{
 
-        return Result.success(fileTrees);
+            List<FileAndDirTable> fileTables = fileMapper.getByUserID(new BigInteger(userID));
+            List<FileAndDirItem> fileTrees = fileService.generateFileAndDirList(fileTables);
+
+            return Result.success(fileTrees);
+
+        } catch (Exception e) {
+
+            return Result.error(FETCH_FAILED);
+
+        }
+
     }
+
 
     /*
 
      根据URL获取文件数据流
 
      */
-    @GetMapping("/getFileStream/{URL}")
-    public Result<InputStream> getFileStream(@PathVariable String URL){
+    @GetMapping("/getFileStream")
+    public Result<byte[]> getFileStream(@RequestParam String URL) {
         try {
-            URL fileUrl = new URL(URL);
+            // 对URL进行解码
+            String decodedPath = java.net.URLDecoder.decode(URL, StandardCharsets.UTF_8);
+            File file = new File(decodedPath);
 
-            // 打开连接并获取输入流
-            InputStream inputStream = fileUrl.openStream();
+            // 检查文件是否存在且可读
+            if (!file.exists() || !file.canRead()) {
+                return Result.error(NOT_FOUND_ERROR);
+            }
 
-            // 成功返回文件数据流
-            return Result.success(inputStream);
+            // 使用try-with-resources自动关闭流
+            try (FileInputStream fis = new FileInputStream(file)) {
+                byte[] content = fis.readAllBytes();
+                return Result.success(content);
+            }
+
         } catch (Exception e) {
-            // 失败返回异常信息
-            return Result.error("无法获取文件数据流:" + e.getMessage());
+            return Result.error(FETCH_FAILED + ":\n" + e.getMessage());
         }
     }
+
 
     /*
 
@@ -71,40 +89,56 @@ public class FileController {
 
      */
     @PostMapping("/addDir")
-    public Result addDirectory(
-            @RequestParam("parentFID") Long parentFID,
-            @RequestParam("originalName") String name
+    public Result<String> addDirectory(
+            @RequestParam("originalName") String name,
+            @RequestParam(value = "parentFID", required = false) BigInteger parentFID,
+            @RequestParam("userID") BigInteger userid
     ){
         try {
 
-            /* TODO */
+//            return (fileService.addDirectory(name, parentFID, userid).getCode() == 1
+//                    ? Result.success()
+//                    : Result.error(ADD_DIR_FAILED));
 
-            return Result.success();
+            return fileService.addDirectory(name, parentFID, userid);
+
         } catch (Exception e) {
-            return Result.error("新建文件夹失败");
+
+            String errString = "新建文件夹错误:\n" + e.getMessage();
+            log.error(errString);
+            return Result.error(errString);
+
         }
     }
+
 
     /*
 
-     文件夹重命名
+     文件/文件夹重命名
 
      */
     @PutMapping("/renameFileOrDir")
-    public Result renameFileOrDirectory(
-            @RequestParam("fid") Long fid,
-            @RequestParam("fName") String fName,
-            @RequestParam("isDir") boolean isDir
+    public Result<String> renameFileOrDirectory(
+            @RequestParam("fid") BigInteger fid,
+            @RequestParam("fName") String fName
     ){
         try {
 
-            /* TODO */
+//            return (fileService.renameFileOrDirectory(fid, fName).getCode() == 1
+//                    ? Result.success()
+//                    : Result.error(RENAME_FAILED));
 
-            return Result.success();
+            return fileService.renameFileOrDirectory(fid, fName);
+
         } catch (Exception e) {
-            return Result.error("重命名失败");
+
+            String errString = "重命名错误:\n" + e.getMessage();
+            log.error(errString);
+            return Result.error(errString);
+
         }
     }
+
 
     /*
 
@@ -118,7 +152,13 @@ public class FileController {
             @RequestParam("userID") BigInteger userid
     ){
 
+        String UPLOAD_FAILED = String.format("文件 %s 上传失败", file.getOriginalFilename());
+
         try {
+
+//            return (fileService.uploadFile(file, parentfid, userid).getCode() == 1
+//                    ? Result.success()
+//                    : Result.error(UPLOAD_FAILED));
 
             return fileService.uploadFile(file, parentfid, userid);
 
@@ -132,26 +172,33 @@ public class FileController {
 
     }
 
+
     /*
 
      修改文件或文件夹位置
 
      */
     @PutMapping("/changeFileOrDirPosition")
-    public Result changeFileOrDirectoryPosition(
-            @RequestParam("fid") Long fid,
-            @RequestParam("parentFID") Long parentFID,
-            @RequestParam("isDir") boolean isDir
+    public Result<String> changeFileOrDirectoryPosition(
+            @RequestParam("fid") BigInteger fid,
+            @RequestParam(value = "parentFID", required = false) BigInteger parentFID,
+            @RequestParam("userID") BigInteger userID
     ){
-        try{
 
-            /* TODO */
+        try {
 
-            return Result.success();
-        } catch (Exception e){
-            return Result.error("移动文件或文件夹失败");
+            return fileService.changeFileOrDirPosition(fid, parentFID, userID);
+
+        } catch (Exception e) {
+
+            String errMsg = String.format("移动文件或文件夹失败:\n %s", e.getMessage());
+            log.error(errMsg);
+            return Result.error(errMsg);
+
         }
+
     }
+
 
     /*
 
@@ -159,17 +206,23 @@ public class FileController {
 
      */
     @DeleteMapping("/deleteFileOrDir/{fid}")
-    public Result deleteFileOrDirectory(
-            @RequestParam("fid") Long fid,
-            @RequestParam("isDir") boolean isDir
+    public Result<String> deleteFileOrDirectory(
+            @PathVariable BigInteger fid
     ){
-        try{
 
-            /* TODO */
+        try {
 
-            return Result.success();
-        } catch (Exception e){
-            return Result.error("删除文件或文件夹失败");
+            return fileService.deleteFileOrDirectory(fid);
+
+        } catch (Exception e) {
+
+            String errMsg = String.format("删除错误: %s", e.getMessage());
+            log.error(errMsg);
+            return Result.error(errMsg);
+
         }
+
     }
+
+
 }
