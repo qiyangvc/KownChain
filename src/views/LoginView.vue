@@ -7,11 +7,11 @@
           <label>用户名</label>
           <input 
             type="text" 
-            v-model="form.userName" 
+            v-model="form.username" 
             required
-            @input="validateField('userName')"
+            @input="validateField('username')"
           />
-          <span class="error" v-if="errors.userName">{{ errors.userName }}</span>
+          <span class="error" v-if="errors.username">{{ errors.username }}</span>
         </div>
   
         <div class="form-group">
@@ -51,12 +51,12 @@
   const authStore = useAuthStore()
   
   const form = reactive({
-    userName: '',
+    username: '',
     password: ''
   })
   
   const errors = reactive({
-    userName: '',
+    username: '',
     password: ''
   })
   
@@ -65,7 +65,7 @@
   const response = ref('')
 
   const validationRules = {
-  userName: value => 
+  username: value => 
     value.length >= 3 ? '' : '用户名至少3个字符',
   
   password: value => {

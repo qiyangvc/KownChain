@@ -115,12 +115,12 @@ const renderedContent = computed(() => {
 // 处理文件节点点击
 const handleNodeClick = async (node) => {
   if (node.isDir || node.dir) return; // 如果是目录，不进行操作
-  
-  // 设置当前文件
+
   store.setCurrentFile(node);
-  
-  // 使用文件ID获取文件内容
-  const fileId = node.fid || node.id || node.URL;
+
+  // 优先用 URL 作为 fileId
+  const fileId = node.URL || node.fid || node.id;
+  console.log('handleNodeClick fileId:', fileId);
   if (fileId) {
     try {
       await store.fetchFileContent(fileId);

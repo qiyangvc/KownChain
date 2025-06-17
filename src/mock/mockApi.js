@@ -104,7 +104,7 @@ export const mockApi = {
     let key =0;
     // 检查用户名和密码
   while (key< userData.length) {
-if (credentials.userName == userData[key].userName && credentials.password == userData[key].password) {
+if (credentials.username == userData[key].username && credentials.password == userData[key].password) {
       return {
         userID: userData[key].userID,
         data: { 
@@ -131,7 +131,7 @@ if (credentials.userName == userData[key].userName && credentials.password == us
     }
     
     // 检查用户名是否已存在
-    const existingUser = userData.find(user => user.userName === userD.userName);
+    const existingUser = userData.find(user => user.username === userD.username);
     if (existingUser) {
       throw { response: { status: 409, data: '用户名已存在' } };
     }

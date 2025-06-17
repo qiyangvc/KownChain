@@ -131,17 +131,31 @@ console.log('calendar tasks:', props.tasks);
 
 <style scoped>
 .calendar-container {
+  position: fixed;
+  top: 24px;
+  right: 10px; /* 原来是24px，向左移远离DDL卡片 */
+  width: 340px;
+  max-width: 90vw;
+  min-width: 220px;
+  z-index: 2000;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding: 15px;
-  transition: all 0.3s ease;
-  /* 等比例缩小为原来的0.7倍，可根据需要调整 */
-  transform: scale(1);
-  transform-origin: top left;
-  width: 100%;
-  /* 防止缩小时溢出 */
-  max-width: none;
+  border-radius: 14px;
+  box-shadow: 0 6px 32px rgba(60, 60, 100, 0.12), 0 1.5px 6px rgba(0,0,0,0.03);
+  padding: 18px 14px 18px 14px;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s;
+  /* margin-left: 32px;  // 移除这行 */
+}
+
+@media (max-width: 600px) {
+  .calendar-container {
+    top: 8px;
+    right: 8px;
+    width: 98vw;
+    min-width: 0;
+    padding: 6px 2px;
+    border-radius: 8px;
+  }
 }
 
 .calendar-header {
@@ -233,17 +247,18 @@ console.log('calendar tasks:', props.tasks);
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 4px;
+  min-width: 320px;
+  width: 100%;
 }
 
 .calendar-day {
   position: relative;
-  aspect-ratio: 1/1;
-  min-height: 32px;
+  width: 100%;
+  padding-top: 100%; /* 保证正方形，适配所有宽度 */
   border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  background: white;
+  box-sizing: border-box;
+  overflow: hidden;
   cursor: pointer;
   transition: all 0.2s;
   font-size: 14px;
@@ -276,24 +291,25 @@ console.log('calendar tasks:', props.tasks);
 }
 
 .calendar-day-cell {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end; /* 让内容靠下 */
+  justify-content: flex-end;
   width: 100%;
   height: 100%;
-  position: relative;
 }
 
 .day-number {
   font-weight: 500;
-  margin-bottom: auto; /* 推到上方 */
+  margin-bottom: auto;
   z-index: 1;
 }
 
 .events-indicator {
   margin-top: auto;
-  margin-bottom: 4px; /* 让小点更靠下 */
+  margin-bottom: 4px;
   min-height: 10px;
   display: flex;
   justify-content: center;

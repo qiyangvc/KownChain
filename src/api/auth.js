@@ -3,7 +3,7 @@ import apiClient from './config'
 import { mockApi } from '@/mock/mockApi'
 
 // 使用模拟数据的标志 - 设置为false使用真实API
-const USE_MOCK_DATA = false;
+const USE_MOCK_DATA = true;
 
 export default {
   // 登录
@@ -33,7 +33,7 @@ export default {
     }
     try {
       const requestData = {
-        username: userData.userName,  // 修复字段名映射
+        username: userData.username,  // 修复字段名映射
         password: userData.password,
         mailbox: userData.email,
         confirmPassword: userData.password  // 添加确认密码字段
@@ -168,5 +168,67 @@ export default {
     // 如果需要通知服务器登出，可以在这里添加API调用
     // 目前只做本地清理
     return Promise.resolve({ message: '登出成功' })
+  },
+    // 创建DDL
+  addDDL(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.addDDL(data);
+    }
+    return axios.post('/addDDL', data);
+  },
+
+  // 删除DDL
+  deleteDDL(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.deleteDDL(data);
+    }
+    return axios.put('/deleteDDL', data);
+  },
+
+  // 修改DDL
+  modifyDDL(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.modifyDDL(data);
+    }
+    return axios.put('/modifyDDL', data);
+  },
+
+  // 获取DDL队列
+  getDDLByUid(uid) {
+    if (USE_MOCK_DATA) {
+      return mockApi.getDDLByUid(uid);
+    }
+    return axios.get('/getDDLByUid', { params: { uid } });
+  },
+  // 新增待办
+  addTodo(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.addTodo(data);
+    }
+    return axios.post('/addTodo', data);
+  },
+
+  // 删除待办
+  deleteTodo(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.deleteTodo(data);
+    }
+    return axios.put('/deleteTodo', data);
+  },
+
+  // 修改待办
+  modifyTodo(data) {
+    if (USE_MOCK_DATA) {
+      return mockApi.modifyTodo(data);
+    }
+    return axios.put('/modifyTodo', data);
+  },
+
+  // 按用户ID和日期获取待办列表
+  getTodoByUidAndDate(params) {
+    if (USE_MOCK_DATA) {
+      return mockApi.getTodoByUidAndDate(params);
+    }
+    return axios.get('/getTodoByUidAndDate', { params });
   },
 }

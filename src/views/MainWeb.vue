@@ -6,20 +6,20 @@
         <i class="toggle-icon" :class="isSidebarCollapsed ? 'icon-expand' : 'icon-collapse'"></i>
       </div>
       <nav>
-        <router-link to="/mainweb/resource" class="nav-item" :title="isSidebarCollapsed ? '资源管理' : ''">
-          <span v-if="!isSidebarCollapsed">资源管理</span>
+        <router-link to="/mainweb/resource" class="nav-item sidebar-btn" :title="isSidebarCollapsed ? '资源管理' : ''">
+          <span v-if="!isSidebarCollapsed" class="btn-text">资源管理</span>
           <span v-else class="icon">📚</span>
         </router-link>
-        <router-link to="/mainweb/workbench" class="nav-item" :title="isSidebarCollapsed ? '学习工作台' : ''">
-          <span v-if="!isSidebarCollapsed">学习工作台</span>
+        <router-link to="/mainweb/workbench" class="nav-item sidebar-btn" :title="isSidebarCollapsed ? '学习工作台' : ''">
+          <span v-if="!isSidebarCollapsed" class="btn-text">学习工作台</span>
           <span v-else class="icon">🖥️</span>
         </router-link>
-        <router-link to="/mainweb/schedule" class="nav-item" :title="isSidebarCollapsed ? '日程管理' : ''">
-          <span v-if="!isSidebarCollapsed">日程管理</span>
+        <router-link to="/mainweb/schedule" class="nav-item sidebar-btn" :title="isSidebarCollapsed ? '日程管理' : ''">
+          <span v-if="!isSidebarCollapsed" class="btn-text">日程管理</span>
           <span v-else class="icon">📅</span>
         </router-link>
-        <router-link to="/mainweb/dashboard" class="nav-item" :title="isSidebarCollapsed ? '学习看板' : ''">
-          <span v-if="!isSidebarCollapsed">学习看板</span>
+        <router-link to="/mainweb/dashboard" class="nav-item sidebar-btn" :title="isSidebarCollapsed ? '学习看板' : ''">
+          <span v-if="!isSidebarCollapsed" class="btn-text">学习看板</span>
           <span v-else class="icon">📊</span>
         </router-link>
       </nav>
@@ -29,8 +29,8 @@
         <div v-if="!isSidebarCollapsed && authStore.user" class="user-info">
           <span class="username">{{ authStore.user.username }}</span>
         </div>
-        <button @click="handleLogout" class="logout-btn" :title="isSidebarCollapsed ? '登出' : ''">
-          <span v-if="!isSidebarCollapsed">登出</span>
+        <button @click="handleLogout" class="logout-btn sidebar-btn" :title="isSidebarCollapsed ? '登出' : ''">
+          <span v-if="!isSidebarCollapsed" class="btn-text">登出</span>
           <span v-else class="icon">🚪</span>
         </button>
       </div>
@@ -193,6 +193,29 @@ const handleLogout = async () => {
   white-space: nowrap;
 }
 
+.sidebar-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  color: #22223b;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background 0.2s, color 0.2s, border-radius 0.2s;
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-btn:hover {
+  background: #f1f5fa;
+  color: #1976d2;
+}
+
 .sidebar.collapsed .nav-item {
   text-align: center;
   padding: 12px 0;
@@ -218,7 +241,7 @@ const handleLogout = async () => {
 /* 用户区域样式 */
 .user-section {
   margin-top: auto;
-  padding: 15px;
+  padding: 0 0 15px 0;
   border-top: 1px solid #e0e0e0;
 }
 
@@ -235,24 +258,49 @@ const handleLogout = async () => {
   color: #333;
 }
 
+/* 登出按钮专属红色 */
 .logout-btn {
-  width: 100%;
-  padding: 8px 12px;
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
+  background: #dc3545;
+  color: #fff;
+  margin-top: 18px; /* 新增：与分界线保持距离 */
 }
 
 .logout-btn:hover {
-  background-color: #c82333;
+  background: #c82333;
+  color: #fff;
+  margin-top: 18px; /* 新增：与分界线保持距离 */
 }
 
+/* 收起时统一动画和布局 */
+.sidebar.collapsed .sidebar-btn {
+  justify-content: center;
+  padding: 10px 0;
+  border-radius: 50%;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  margin: 0 auto 12px auto;
+  font-size: 20px;
+  gap: 0;
+  transition: all 0.2s;
+}
+
+/* 收起时只显示icon，隐藏文字 */
+.sidebar.collapsed .sidebar-btn .btn-text {
+  display: none;
+}
+
+/* icon样式 */
+.sidebar-btn .icon {
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+/* 保证收起时登出按钮与分界线有距离 */
 .sidebar.collapsed .logout-btn {
-  padding: 8px;
-  text-align: center;
+  margin-top: 18px !important;
 }
 </style>

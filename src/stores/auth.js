@@ -32,7 +32,7 @@ export const useAuthStore = defineStore('auth', {
     async login(credentials) {
       try {
         const response = await authApi.login({
-          username: credentials.userName, // 适配前端字段名
+          username: credentials.username, // 适配前端字段名
           password: credentials.password
         })
         

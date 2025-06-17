@@ -8,11 +8,11 @@
           <label>用户名</label>
           <input 
             type="text" 
-            v-model="form.userName" 
+            v-model="form.username" 
             required
-            @input="validateField('userName')"
+            @input="validateField('username')"
           />
-          <span class="error" v-if="errors.userName">{{ errors.userName }}</span>
+          <span class="error" v-if="errors.username">{{ errors.username }}</span>
         </div>
   
         <div class="form-group">
@@ -71,14 +71,14 @@
   const authStore = useAuthStore()
   
   const form = reactive({
-    userName: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: ''
   })
   
   const errors = reactive({
-    userName: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -88,7 +88,7 @@
   const registerError = ref('')
   const response = ref('')
   const validationRules = {
-    userName: (value) => {
+    username: (value) => {
       if (!value) return '用户名不能为空'
       if (value.length < 3 || value.length > 20) return '用户名长度应在3到20个字符之间'
       return ''
@@ -130,7 +130,7 @@
       
       isSubmitting.value = true
       const response = await authStore.register({
-        userName: form.userName, 
+        username: form.username, 
         password: form.password, 
         email: form.email
       })

@@ -361,7 +361,8 @@ const handleNodeClick = async (node) => {
   store.setCurrentFile(node);
   
   // 使用文件ID获取文件内容
-  const fileId = node.fid || node.id || node.URL;
+  // 优先用 URL 作为 fileId
+  const fileId = node.URL || node.fid || node.id;
   if (fileId) {
     try {
       await store.fetchFileContent(fileId);

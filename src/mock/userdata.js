@@ -2,13 +2,13 @@
 export const userData = [
     {
     userID: 1,
-    userName: 'qiyangvc',
+    username: 'qiyangvc',
     password: '123456',
     email: 'qiyangvc@11.com'
     },
     {
     userID: 2,
-    userName: 'admin',
+    username: 'admin',
     password: '123456',
     email: ''
     }

@@ -1,106 +1,83 @@
 <template>
   <div class="dashboard-container">
-    <h1>学习看板</h1>
-    <div class="relation-graph-container">
-      <h2>文件关系图谱</h2>
-      <div ref="graph" class="graph-canvas"></div>
+    <div class="dashboard-header">
+      <div class="dashboard-title-bar"></div>
+      <h1 class="dashboard-title">学习看板</h1>
     </div>
-    <div class="content">
-      <p>这里是学习看板页面内容</p>
+    <div class="dashboard-card">
+      <RelationGraph :resourceTree="store.resourceTree" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted, watch } from 'vue'
+import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { Network } from 'vis-network/standalone/esm/vis-network'
+import RelationGraph from '@/components/RelationGraph.vue'
 
 const store = useAuthStore()
-const resourceTree = computed(() => store.resourceTree || []);
-const allFileContents = computed(() => store.allFileContents || {});
 
-const graph = ref(null)
-let network = null
-
-const graphNodes = computed(() =>
-  (resourceTree.value || []).map(file => ({
-    id: file.fid,
-    label: file.fName
-  }))
-)
-
-const graphLinks = computed(() => {
-  const links = [];
-  if (!Array.isArray(resourceTree.value)) return links;
-  resourceTree.value.forEach(file => {
-    const content = allFileContents.value?.[file.fid];
-    if (!content) return;
-    const regex = /\[.*?\]\((.*?)\)/g;
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-      const url = match[1];
-      const target = resourceTree.value.find(f => url.includes(f.fName));
-      if (target) {
-        links.push({ from: file.fid, to: target.fid });
-      }
-    }
-  });
-  return links;
-});
-
-function renderGraph() {
-  if (!graph.value) return;
-  const data = {
-    nodes: graphNodes.value,
-    edges: graphLinks.value
-  };
-  const options = {
-    nodes: {
-      shape: 'dot',
-      size: 18,
-      font: { size: 16 }
-    },
-    edges: {
-      arrows: 'to',
-      color: '#aaa'
-    },
-    physics: {
-      stabilization: true
-    }
-  };
-  if (network) network.destroy();
-  network = new Network(graph.value, data, options);
-}
-
-onMounted(() => {
-  renderGraph();
-});
-watch([graphNodes, graphLinks], () => {
-  renderGraph();
-});
+onMounted(async () => {
+  if (!store.resourceTree || store.resourceTree.length === 0) {
+    await store.fetchResourceTree()
+  }
+})
 </script>
 
 <style scoped>
 .dashboard-container {
-  padding: 20px;
+  padding: 32px 0 0 0;
+  background: #f6f8fa;
+  min-height: 100vh;
 }
 
-.content {
-  margin-top: 20px;
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-left: 24px;
+}
+
+.dashboard-title-bar {
+  width: 6px;
+  height: 32px;
+  background: #4a6cf7;
+  border-radius: 3px;
+  margin-right: 14px;
+}
+
+.dashboard-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #22223b;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.dashboard-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 24px rgba(74,108,247,0.07), 0 1.5px 6px rgba(0,0,0,0.03);
+  padding: 32px 28px 24px 28px;
+  max-width: 1000px; /* 更宽 */
+  margin: 0 auto;
 }
 
 .relation-graph-container {
-  padding: 10px;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  margin-bottom: 16px;
+  padding: 10px 0 0 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  margin-bottom: 0;
 }
 
 .graph-canvas {
   width: 100%;
-  height: 320px;
-  min-height: 200px;
+  height: 400px;
+  min-height: 240px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  margin-top: 16px;
 }
 </style>
