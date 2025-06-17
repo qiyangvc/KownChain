@@ -143,26 +143,8 @@ export default {
   // 删除文件或文件夹
   async deleteFile(fileId, isDirectory = false) {
     if (USE_MOCK_DATA) {
-      return Promise.resolve({ data: '删除成功' });
+      return mockApi.saveFileContent(url, content);
     }
-    try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}')
-      const response = await apiClient.delete('/file/delete', {
-        params: {
-          userId: user.userid,
-          fileId: fileId,
-          isDirectory: isDirectory
-        }
-      })
-      return { data: response }
-    } catch (error) {
-      throw error
-    }
-  },
-
-  // 登出
-  logout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+    return axios.put(url, { content });
   }
 }

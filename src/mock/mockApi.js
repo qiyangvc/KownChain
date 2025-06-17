@@ -1,6 +1,7 @@
 import { use } from 'marked';
 import { resourceTreeData } from './resourceTree';
 import { userData } from './userdata';
+import { useAuthStore } from '@/stores/auth';
 
 // 模拟文件内容映射
 const fileContents = {
@@ -17,6 +18,39 @@ const fileContents = {
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // 模拟API
+let mockDDLList = [
+  {
+    dID: 1,
+    uid: 1,
+    dTitle: 'DDL 示例',
+    dEndTime: '2025-06-20T18:00',
+    dNotes: '示例DDL',
+    dCreateTime: '2025-06-01T10:00'
+  }
+];
+
+// 模拟TODOTable数据
+let mockTodoList = [
+  {
+    tdID: 1,
+    uid: 1,
+    tdDate: '2025-06-18',
+    tdContent: '完成前端页面开发',
+    tdStartTime: '09:00',
+    tdEndTime: '10:00',
+    tdFinishFlag: 0
+  },
+  {
+    tdID: 2,
+    uid: 1,
+    tdDate: '2025-06-18',
+    tdContent: '复习算法题',
+    tdStartTime: '10:30',
+    tdEndTime: '11:30',
+    tdFinishFlag: 1
+  }
+];
+
 export const mockApi = {
   // 获取资源树
   async getResourceTree() {
@@ -152,4 +186,86 @@ if (credentials.userName == userData[key].userName && credentials.password == us
       }, 500);
     });
   },
-};
+
+  addDDL(data) {
+    const newDDL = { ...data, dID: Date.now(), dCreateTime: new Date().toISOString() };
+    mockDDLList.push(newDDL);
+    return Promise.resolve({ data: { success: true, ddl: newDDL } });
+  },
+
+  deleteDDL(data) {
+    mockDDLList = mockDDLList.filter(item => item.dID !== data.dID);
+    return Promise.resolve({ data: { success: true } });
+  },
+
+  modifyDDL(data) {
+    const idx = mockDDLList.findIndex(item => item.dID === data.dID);
+    if (idx !== -1) {
+      mockDDLList[idx] = { ...mockDDLList[idx], ...data };
+    }
+    return Promise.resolve({ data: { success: true, ddl: mockDDLList[idx] } });
+  },
+
+  getDDLByUid(uid) {
+    const list = mockDDLList.filter(item => item.uid === uid);
+    return Promise.resolve({ data: { success: true, list } });
+  },
+
+  // 新增待办
+  addTodo(data) {
+    const newTodo = { ...data, tdID: Date.now() };
+    mockTodoList.push(newTodo);
+    return Promise.resolve({ data: { success: true, todo: newTodo } });
+  },
+
+  // 删除待办
+  deleteTodo(data) {
+    mockTodoList = mockTodoList.filter(item => item.tdID !== data.tdID);
+    return Promise.resolve({ data: { success: true } });
+  },
+
+  // 修改待办
+  modifyTodo(data) {
+    const idx = mockTodoList.findIndex(item => item.tdID === data.tdID);
+    if (idx !== -1) {
+      mockTodoList[idx] = { ...mockTodoList[idx], ...data };
+    }
+    return Promise.resolve({ data: { success: true, todo: mockTodoList[idx] } });
+  },
+
+  // 按用户ID和日期获取待办列表
+  getTodoByUidAndDate({ uid, tdDate }) {
+    const list = mockTodoList.filter(item => item.uid === uid && item.tdDate === tdDate);
+    return Promise.resolve({ data: { success: true, list } });
+  },
+
+  // 获取知识图谱节点和关系
+  getKnowledgeGraph() {
+    const nodes = [];
+    const links = [];
+    function traverse(tree, parent = null, level = 0) {
+      if (!tree) return;
+      console.log('traverse', tree);
+      tree.forEach(item => {
+        nodes.push({
+          id: item.fid,
+          label: item.fName,
+          isDir: !!item.isDir,
+          level
+        });
+        if (parent) {
+          links.push({ from: parent.fid, to: item.fid });
+        }
+        // 递归遍历子目录
+        if (item.children && item.children.length) {
+          traverse(item.children, item, level + 1);
+        }
+      });
+    }
+    // resourceTreeData 应该是你的 mock 资源树数据
+    traverse(resourceTreeData);
+    return Promise.resolve({ data: { nodes, links } });
+  }
+}
+
+console.log('resourceTreeData', resourceTreeData);

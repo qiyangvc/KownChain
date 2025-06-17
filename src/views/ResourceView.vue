@@ -103,6 +103,9 @@ const currentFileName = computed(() => {
   return currentFile.value.fName || currentFile.value.fname || '未知文件';
 });
 
+// 你需要维护一个所有文件内容的 Map，例如 { fid: content }
+const allFileContents = computed(() => store.allFileContents); // 需你在 store 里维护
+
 // 渲染Markdown内容
 const renderedContent = computed(() => {
   if (!store.currentFileContent) return '';
