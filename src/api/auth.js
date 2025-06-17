@@ -3,7 +3,7 @@ import apiClient from './config'
 import { mockApi } from '@/mock/mockApi'
 
 // 使用模拟数据的标志 - 设置为false使用真实API
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 export default {
   // 登录
