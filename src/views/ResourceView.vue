@@ -46,7 +46,7 @@
           <div v-else-if="contentError" class="error-message">
             {{ contentError }}
           </div>
-          <div v-else class="markdown-content" v-html="renderedContent"></div>
+          <div v-else class="markdown-content" v-html="renderedContent" @click="handleContentClick"></div>
         </div>
       </div>
     </div>
@@ -133,6 +133,110 @@ const handleNodeClick = async (node) => {
 // 关闭当前文件
 const closeFile = () => {
   store.closeCurrentFile();
+};
+
+// 处理内容区域点击，用于链接预览
+const handleContentClick = async (event) => {
+  // 检查是否点击的是链接
+  if (event.target.tagName === 'A') {
+    event.preventDefault();
+    const url = event.target.getAttribute('href');
+    console.log('ResourceView: 点击链接:', url);
+    
+    // 尝试在文件树中查找匹配的文件
+    const file = findFileByUrl(url);
+    if (file) {
+      console.log('ResourceView: 找到文件:', file);
+      // 直接在当前内容区域显示链接文件内容
+      await handleNodeClick(file);
+    } else {
+      console.log('ResourceView: 未找到文件，尝试直接加载:', url);
+      // 如果找不到文件，尝试加载
+      await loadFileByIdentifier(url);
+    }
+  }
+};
+
+// 在文件树中查找匹配URL的文件
+const findFileByUrl = (url) => {
+  console.log('ResourceView: 搜索文件:', url);
+  
+  // 递归搜索函数
+  const searchInTree = (nodes) => {
+    if (!nodes) return null;
+    
+    for (const node of nodes) {
+      const nodeId = node.fid || node.id || node.URL;
+      const fileName = node.fName || node.fname || '';
+      
+      if (!node.isDir && !node.dir) {
+        // 1. 精确匹配ID或URL
+        if (nodeId && nodeId.toString() === url.toString()) {
+          console.log('ResourceView: ID匹配成功:', nodeId);
+          return node;
+        }
+        
+        // 2. 匹配文件名（完全匹配）
+        if (fileName === url) {
+          console.log('ResourceView: 文件名完全匹配:', fileName);
+          return node;
+        }
+        
+        // 3. 匹配文件名（忽略.md扩展名）
+        if (fileName.endsWith('.md') && fileName.replace('.md', '') === url.replace('.md', '')) {
+          console.log('ResourceView: 文件名匹配（忽略扩展名）:', fileName);
+          return node;
+        }
+        
+        // 4. 如果url不包含.md，尝试添加.md匹配
+        if (!url.includes('.md') && fileName === url + '.md') {
+          console.log('ResourceView: 添加.md扩展名匹配:', fileName);
+          return node;
+        }
+      }
+      
+      if ((node.isDir || node.dir) && node.children) {
+        const found = searchInTree(node.children);
+        if (found) return found;
+      }
+    }
+    
+    return null;
+  };
+  
+  const result = searchInTree(resourceTree.value);
+  console.log('ResourceView: 搜索结果:', result);
+  return result;
+};
+
+// 根据标识符加载文件（当在文件树中找不到时）
+const loadFileByIdentifier = async (identifier) => {
+  console.log('ResourceView: 根据标识符加载文件:', identifier);
+  
+  try {
+    // 创建一个临时的文件对象
+    let tempFile;
+    
+    if (/^\d+$/.test(identifier)) {
+      // 数字ID，尝试加载
+      tempFile = { fName: `文件${identifier}`, fid: identifier };
+    } else {
+      // 文件名，设置一个默认的文件信息
+      tempFile = { fName: identifier.endsWith('.md') ? identifier : identifier + '.md', URL: identifier };
+    }
+    
+    // 设置临时文件为当前文件
+    store.setCurrentFile(tempFile);
+    
+    // 尝试获取文件内容
+    const fileId = tempFile.fid || tempFile.URL || identifier;
+    await store.fetchFileContent(fileId);
+    
+    console.log('ResourceView: 文件内容加载成功');
+  } catch (error) {
+    console.error('ResourceView: 加载文件失败:', error);
+    // 可以显示错误信息或提示
+  }
 };
 
 // 组件挂载时获取资源树
