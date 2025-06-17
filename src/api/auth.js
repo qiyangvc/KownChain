@@ -138,13 +138,35 @@ export default {
     } catch (error) {
       throw error
     }
-  },
-
-  // 删除文件或文件夹
+  },  // 删除文件或文件夹
   async deleteFile(fileId, isDirectory = false) {
     if (USE_MOCK_DATA) {
-      return mockApi.saveFileContent(url, content);
+      return Promise.resolve({ data: '删除成功' });
     }
-    return axios.put(url, { content });
-  }
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      const response = await apiClient.delete('/file/delete', {
+        params: {
+          userId: user.userid,
+          fileId: fileId,
+          isDirectory: isDirectory
+        }
+      })
+      return { data: response }
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // 登出
+  async logout() {
+    // 清除localStorage中的认证信息
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    localStorage.removeItem('isAuthenticated')
+    
+    // 如果需要通知服务器登出，可以在这里添加API调用
+    // 目前只做本地清理
+    return Promise.resolve({ message: '登出成功' })
+  },
 }

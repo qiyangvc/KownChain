@@ -519,10 +519,28 @@ const confirmCreate = async () => {
     
     // 关闭对话框
     showCreateDialog.value = false;
-    
-  } catch (error) {
+      } catch (error) {
     console.error('创建失败:', error);
-    createError.value = error.message || '创建失败';
+    
+    // 改进错误信息处理
+    let errorMessage = '创建失败';
+    
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.response?.data) {
+      errorMessage = error.response.data;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    // 特别处理重名错误
+    if (errorMessage.includes('已存在') || errorMessage.includes('同名')) {
+      createError.value = errorMessage;
+    } else {
+      createError.value = errorMessage;
+    }
+    
+    console.log('显示错误信息:', createError.value);
   }
 };
 

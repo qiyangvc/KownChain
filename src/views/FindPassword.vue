@@ -72,14 +72,28 @@
         return
       }
     }
-    
-    try {
+      try {
       // 调用重置密码 API
       const response = await authStore.requestReset(form.email)
       successMessage.value = '重置邮件已发送，请检查您的邮箱。'
+      resetError.value = '' // 清空错误信息
       form.email = '' // 清空输入框
     } catch (error) {
-      resetError.value = error.response.data || '发送重置邮件失败，请稍后再试。'
+      console.error('重置密码请求失败:', error)
+      
+      // 优化错误处理，提取具体的错误信息
+      let errorMessage = '发送重置邮件失败，请稍后再试。'
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error.response?.data) {
+        errorMessage = error.response.data
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      resetError.value = errorMessage
+      successMessage.value = '' // 清空成功信息
     } finally {
       isSubmitting.value = false
     }

@@ -60,9 +60,24 @@ const toggleSidebar = () => {
 };
 
 // 处理登出
-const handleLogout = () => {
-  authStore.logout();
-  router.push('/login');
+const handleLogout = async () => {
+  try {
+    console.log('开始执行登出操作...')
+    
+    // 执行登出操作
+    await authStore.logout()
+    
+    console.log('登出成功，准备跳转到登录页面')
+    
+    // 跳转到登录页面
+    await router.push('/login')
+    
+    console.log('已跳转到登录页面')
+  } catch (error) {
+    console.error('登出过程中发生错误:', error)
+    // 即使发生错误，也要尝试跳转到登录页面
+    router.push('/login')
+  }
 };
 </script>
 
