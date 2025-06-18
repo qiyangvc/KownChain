@@ -397,11 +397,11 @@ const handleNodeContextMenu = (data) => {
 
 // 复制文件URL到剪贴板
 const copyFileUrl = () => {
-  if (selectedNode.value && selectedNode.value.URL) {
-    const fileUrl = selectedNode.value.URL;
+  if (selectedNode.value && selectedNode.value.fid) {
+    const fileId = selectedNode.value.fid;
     const fileName = selectedNode.value.fName || selectedNode.value.fname || 'unknown';
     // 生成Markdown格式的链接
-    const markdownLink = `[${fileName}](${fileUrl})`;
+    const markdownLink = `[${fileName}](${fileId})`;
     
     navigator.clipboard.writeText(markdownLink)
       .then(() => {
@@ -417,6 +417,11 @@ const copyFileUrl = () => {
           saveError.value = '';
         }, 2000);
       });
+  } else {
+    saveError.value = '无法获取文件信息';
+    setTimeout(() => {
+      saveError.value = '';
+    }, 2000);
   }
   closeContextMenu();
 };
@@ -577,8 +582,7 @@ const confirmDelete = async () => {
   
   try {
     deleteError.value = '';
-    
-    const itemId = deleteItemToDelete.value.fid || deleteItemToDelete.value.id || deleteItemToDelete.value.URL;
+      const itemId = deleteItemToDelete.value.fid || deleteItemToDelete.value.id || deleteItemToDelete.value.URL;
     const itemName = deleteItemToDelete.value.fName || deleteItemToDelete.value.fname || deleteItemToDelete.value.name;
     const isDirectory = deleteItemToDelete.value.isDir || deleteItemToDelete.value.dir;
     
@@ -588,8 +592,8 @@ const confirmDelete = async () => {
       isDirectory: isDirectory
     });
     
-    // 调用API删除文件或文件夹
-    await authApi.deleteFile(itemId, isDirectory);
+    // 调用统一的删除API
+    await authApi.deleteFile(itemId);
     
     // 删除成功后刷新文件树
     await store.fetchResourceTree();

@@ -144,14 +144,7 @@ export default {
       return Promise.resolve({ data: '删除成功' });
     }
     try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}')
-      const response = await apiClient.delete('/file/delete', {
-        params: {
-          userId: user.userid,
-          fileId: fileId,
-          isDirectory: isDirectory
-        }
-      })
+      const response = await apiClient.delete(`/file/deleteFileOrDir/${fileId}`)
       return { data: response }
     } catch (error) {
       throw error
