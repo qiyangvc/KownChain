@@ -34,14 +34,18 @@ public interface FileService {
 
 
     /**
-     * 新建文件夹
-     * @param name 文件夹名
-     * @param parentFID 父目录fID
-     * @return 创建文件夹是否成功结果
+     * 新建文件或文件夹
+     * @param name 文件/文件夹名称
+     * @param parentFID 父目录ID
+     * @param userID 用户ID
+     * @param isDir 是否是文件夹
+     * @return 创建结果
+     * @apiNote 新建文件仅支持.md格式
      */
-    Result<String> addDirectory(String name,
-                                BigInteger parentFID,
-                                BigInteger userID) throws SecurityException;
+    Result<String> addFileOrDirectory(String name,
+                                      BigInteger parentFID,
+                                      BigInteger userID,
+                                      boolean isDir) throws SecurityException;
 
 
     /**

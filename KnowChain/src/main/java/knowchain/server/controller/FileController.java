@@ -85,29 +85,22 @@ public class FileController {
 
     /*
 
-     新建文件夹
+     新建文件/文件夹
 
      */
-    @PostMapping("/addDir")
-    public Result<String> addDirectory(
+    @PostMapping("/addFileOrDir")
+    public Result<String> addFileOrDirectory(
+            @RequestParam("isDir") boolean isDir,
             @RequestParam("originalName") String name,
             @RequestParam(value = "parentFID", required = false) BigInteger parentFID,
             @RequestParam("userID") BigInteger userid
     ){
         try {
-
-//            return (fileService.addDirectory(name, parentFID, userid).getCode() == 1
-//                    ? Result.success()
-//                    : Result.error(ADD_DIR_FAILED));
-
-            return fileService.addDirectory(name, parentFID, userid);
-
+            return fileService.addFileOrDirectory(name, parentFID, userid, isDir);
         } catch (Exception e) {
-
-            String errString = "新建文件夹错误:\n" + e.getMessage();
-            log.error(errString);
-            return Result.error(errString);
-
+            String errMsg = String.format("新建%s失败: %s", isDir ? "文件夹" : "文件", e.getMessage());
+            log.error(errMsg);
+            return Result.error(errMsg);
         }
     }
 

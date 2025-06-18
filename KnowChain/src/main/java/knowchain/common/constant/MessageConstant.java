@@ -27,6 +27,7 @@ public class MessageConstant {
     public static final String ACCESS_RESTRICTED = "权限不足";
     public static final String GET_STREAM_FAILED = "文件流读取失败";
     public static final String REMOVE_FAILED = "删除文件或文件夹失败";
+    public static final String UNSUPPORTED_UPLOAD_FORMAT = "不支持的文件格式,新建文件只支持 .md 格式";
     // 成功
     public static final String REMOVE_SUCCESS = "删除成功";
 

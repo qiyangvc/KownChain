@@ -112,18 +112,20 @@ public class FileServiceImpl implements FileService {
 
 
     @Override
-    public Result<String> addDirectory(String name, BigInteger parentFID, BigInteger userID) throws SecurityException{
-
+    public Result<String> addFileOrDirectory(String name, BigInteger parentFID, BigInteger userID, boolean isDir) throws SecurityException {
         /* 检查 */
-        // 检查文件夹名是否为空
+        // 检查文件/文件夹名是否为空
         if(name == null || name.trim().isEmpty()) {
             return Result.error(NAME_NULL_ERROR);
-//            return Result.error(ADD_DIR_FAILED);
         }
 
-        // 确保上传目录存在(不存在就新建文件夹)
-        // 文件根目录为上传文件根目录中的#{userid}文件夹
-        String uploadPath = FileConstant.UploadFilePATH + File.separator + userID.toString();
+        // 如果是文件，检查文件格式 - 只允许.md格式
+        if(!isDir && !name.endsWith(".md")) {
+            return Result.error(UNSUPPORTED_UPLOAD_FORMAT);
+        }
+
+        // 确保上传目录存在
+        String uploadPath = FileConstant.UploadFilePATH + File.separator + userID;
         File uploadDir = new File(uploadPath);
         if (!uploadDir.exists()) {
             uploadDir.mkdirs();
@@ -133,7 +135,6 @@ public class FileServiceImpl implements FileService {
         if((parentFID != null && fileMapper.getByUIDandFNameandParentFID(userID, name, parentFID) != null)
                 || (parentFID == null && fileMapper.getByUIDandFNameandNULLParentFID(userID, name) != null)) {
             return Result.error(EXIST_ERROR);
-//            return Result.error(ADD_DIR_FAILED);
         }
 
         // 如果有父目录,检查父目录是否存在且是文件夹
@@ -141,28 +142,38 @@ public class FileServiceImpl implements FileService {
         if(parentFID != null) {
             if(currDir == null || !currDir.isDir()) {
                 return Result.error(FOLDER_NOT_FOUND);
-//                return Result.error(ADD_DIR_FAILED);
             }
         }
 
-        /* 检查完毕,开始新建文件夹 */
-        // 在文件系统中创建对应的文件夹
-        String dirPath;
+        /* 开始创建 */
+        String filePath;
         if(parentFID != null) {
-            dirPath = currDir.getURL() + File.separator + name;
+            filePath = currDir.getURL() + File.separator + name;
+        } else {
+            filePath = uploadDir.getAbsolutePath() + File.separator + name;
         }
-        else {
-            dirPath = uploadDir.getAbsolutePath() + File.separator + name;
+
+        File newFile = new File(filePath);
+        if(isDir) {
+            // 创建文件夹
+            if(!newFile.mkdirs()) {
+                return Result.error("创建文件夹失败");
+            }
+        } else {
+            // 创建空文件
+            try {
+                if(!newFile.createNewFile()) {
+                    return Result.error("创建文件失败");
+                }
+            } catch(IOException e) {
+                return Result.error("创建文件失败: " + e.getMessage());
+            }
         }
 
-        File dir = new File(dirPath);
-        dir.mkdirs();
+        // 在数据库中创建记录
+        fileMapper.insert(name, filePath, parentFID, isDir, userID);
 
-        // 在数据库中创建文件夹记录
-        fileMapper.insert(name, dirPath, parentFID, true, userID);
-
-        return Result.success();
-
+        return Result.success(isDir ? "文件夹创建成功" : "文件创建成功");
     }
 
 
