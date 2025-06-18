@@ -1,12 +1,18 @@
 package knowchain.server.controller;
 
 import knowchain.common.result.Result;
+import knowchain.pojo.DTO.SaveFileDTO;
 import knowchain.pojo.VO.FileAndDirItem;
 import knowchain.pojo.entity.FileAndDirTable;
+import knowchain.server.handler.GlobalExceptionHandler;
 import knowchain.server.mapper.FileMapper;
 import knowchain.server.service.FileService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,6 +20,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 
 import static knowchain.common.constant.MessageConstant.*;
@@ -47,7 +54,7 @@ public class FileController {
 
         } catch (Exception e) {
 
-            return Result.error(FETCH_FAILED);
+            return GlobalExceptionHandler.exceptionHandler(e);
 
         }
 
@@ -56,30 +63,68 @@ public class FileController {
 
     /*
 
-     根据URL获取文件数据流
+     根据fID获取文件数据流
 
      */
-    @GetMapping("/getFileStream")
-    public Result<byte[]> getFileStream(@RequestParam String URL) {
+    @GetMapping("/content/{fileId}")
+    public Result<?> getFileStream(@PathVariable String fileId) {
+
         try {
-            // 对URL进行解码
-            String decodedPath = java.net.URLDecoder.decode(URL, StandardCharsets.UTF_8);
-            File file = new File(decodedPath);
+
+            // 获取文件
+            BigInteger fid = new BigInteger(fileId);
+            FileAndDirTable fileAndDirTable = fileMapper.getByFID(fid);
+
+            // 检查文件是否存在
+            if (fileAndDirTable == null) {
+                return Result.error(NOT_FOUND_ERROR);
+            }
+
+            File file = new File(fileAndDirTable.getURL());
 
             // 检查文件是否存在且可读
             if (!file.exists() || !file.canRead()) {
                 return Result.error(NOT_FOUND_ERROR);
             }
 
-            // 使用try-with-resources自动关闭流
-            try (FileInputStream fis = new FileInputStream(file)) {
-                byte[] content = fis.readAllBytes();
-                return Result.success(content);
+            String fileName = fileAndDirTable.getFName().toLowerCase();
+            String contentType;
+
+            if (fileName.endsWith(".pdf")) {
+                contentType = "application/pdf";
+                byte[] content = Files.readAllBytes(file.toPath());
+                // 返回Result，msg中带contentType
+                return Result.success()
+                        .setMsg(contentType)
+                        .setData(content);
+            } else if (fileName.endsWith(".ppt")) {
+                contentType = "application/vnd.ms-powerpoint";
+                byte[] content = Files.readAllBytes(file.toPath());
+                return Result.success()
+                        .setMsg(contentType)
+                        .setData(content);
+            } else if (fileName.endsWith(".pptx")) {
+                contentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+                byte[] content = Files.readAllBytes(file.toPath());
+                return Result.success()
+                        .setMsg(contentType)
+                        .setData(content);
+            } else if (fileName.endsWith(".md")) {
+                contentType = "text/markdown; charset=UTF-8";
+                String content = Files.readString(file.toPath());
+                return Result.success()
+                        .setMsg(contentType)
+                        .setData(content);
+            } else {
+                return Result.error(UNSUPPORTED_FORMAT);
             }
 
         } catch (Exception e) {
-            return Result.error(FETCH_FAILED + ":\n" + e.getMessage());
+
+            return GlobalExceptionHandler.exceptionHandler(e);
+
         }
+
     }
 
 
@@ -88,19 +133,42 @@ public class FileController {
      新建文件/文件夹
 
      */
-    @PostMapping("/addFileOrDir")
+    @PostMapping("/create")
     public Result<String> addFileOrDirectory(
-            @RequestParam("isDir") boolean isDir,
-            @RequestParam("originalName") String name,
-            @RequestParam(value = "parentFID", required = false) BigInteger parentFID,
-            @RequestParam("userID") BigInteger userid
+            @RequestParam("isDirectory") boolean isDir,
+            @RequestParam("fileName") String name,
+            @RequestParam(value = "parentId", required = false) BigInteger parentFID,
+            @RequestParam("userId") BigInteger userid
     ){
+
         try {
+
             return fileService.addFileOrDirectory(name, parentFID, userid, isDir);
+
         } catch (Exception e) {
-            String errMsg = String.format("新建%s失败: %s", isDir ? "文件夹" : "文件", e.getMessage());
-            log.error(errMsg);
-            return Result.error(errMsg);
+
+            return GlobalExceptionHandler.exceptionHandler(e);
+
+        }
+
+    }
+
+
+    /*
+
+        文件保存
+
+     */
+    @PostMapping("/save")
+    public Result<String> saveFile(@RequestBody SaveFileDTO saveFileDTO) {
+        try {
+
+            return fileService.saveFile(saveFileDTO.getFileId(), saveFileDTO.getContent());
+
+        } catch(Exception e) {
+
+            return GlobalExceptionHandler.exceptionHandler(e);
+
         }
     }
 
@@ -125,9 +193,7 @@ public class FileController {
 
         } catch (Exception e) {
 
-            String errString = "重命名错误:\n" + e.getMessage();
-            log.error(errString);
-            return Result.error(errString);
+            return GlobalExceptionHandler.exceptionHandler(e);
 
         }
     }
@@ -157,9 +223,7 @@ public class FileController {
 
         } catch (Exception e) {
 
-            String errString = String.format("文件上传出错: \n%s", e.getMessage());
-            log.error(errString);
-            return Result.error(errString);
+            return GlobalExceptionHandler.exceptionHandler(e);
 
         }
 
@@ -184,9 +248,7 @@ public class FileController {
 
         } catch (Exception e) {
 
-            String errMsg = String.format("移动文件或文件夹失败:\n %s", e.getMessage());
-            log.error(errMsg);
-            return Result.error(errMsg);
+            return GlobalExceptionHandler.exceptionHandler(e);
 
         }
 
@@ -209,9 +271,7 @@ public class FileController {
 
         } catch (Exception e) {
 
-            String errMsg = String.format("删除错误: %s", e.getMessage());
-            log.error(errMsg);
-            return Result.error(errMsg);
+            return GlobalExceptionHandler.exceptionHandler(e);
 
         }
 

@@ -28,8 +28,11 @@ public class MessageConstant {
     public static final String GET_STREAM_FAILED = "文件流读取失败";
     public static final String REMOVE_FAILED = "删除文件或文件夹失败";
     public static final String UNSUPPORTED_UPLOAD_FORMAT = "不支持的文件格式,新建文件只支持 .md 格式";
+    public static final String SAVE_TYPE_ERROR_FOLDER = "不能保存文件夹内容";
+    public static final String SAVE_TYPE_ERROR_FILE = "只能保存.md格式的文件";
     // 成功
     public static final String REMOVE_SUCCESS = "删除成功";
+    public static final String SAVE_SUCCESS = "文件保存成功";
 
     /*
         DDL管理常量

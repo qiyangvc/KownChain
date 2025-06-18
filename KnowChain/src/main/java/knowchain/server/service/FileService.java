@@ -49,6 +49,14 @@ public interface FileService {
 
 
     /**
+     * 保存文件
+     *
+     */
+    Result<String> saveFile(BigInteger fileId,
+                            String content) throws IOException;
+
+
+    /**
      * 重命名文件或文件夹
      * @param fid 文件/文件夹ID
      * @param newName 新名称

@@ -35,4 +35,13 @@ public class Result<T> implements Serializable {
         return result;
     }
 
+    public Result<T> setMsg(String msg) {
+        this.msg = msg;
+        return this;
+    }
+    public Result<T> setData(T data) {
+        this.data = data;
+        return this;
+    }
+
 }

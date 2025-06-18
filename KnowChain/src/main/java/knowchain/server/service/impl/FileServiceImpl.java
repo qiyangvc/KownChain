@@ -7,7 +7,6 @@ import knowchain.pojo.VO.FileAndDirItem;
 import knowchain.pojo.entity.FileAndDirTable;
 import knowchain.server.mapper.FileMapper;
 import knowchain.server.service.FileService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +14,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 
 import static knowchain.common.constant.MessageConstant.*;
@@ -174,6 +175,39 @@ public class FileServiceImpl implements FileService {
         fileMapper.insert(name, filePath, parentFID, isDir, userID);
 
         return Result.success(isDir ? "文件夹创建成功" : "文件创建成功");
+    }
+
+
+    @Override
+    public Result<String> saveFile(BigInteger fileId, String content) throws IOException {
+
+        // 获取文件信息
+        FileAndDirTable fileAndDirTable = fileMapper.getByFID(fileId);
+        if(fileAndDirTable == null) {
+            return Result.error(NOT_FOUND_ERROR);
+        }
+
+        // 检查是否是文件夹
+        if(fileAndDirTable.isDir()) {
+            return Result.error(SAVE_TYPE_ERROR_FOLDER);
+        }
+
+        // 检查文件格式是否为.md
+        String fileName = fileAndDirTable.getFName().toLowerCase();
+        if(!fileName.endsWith(".md")) {
+            return Result.error(SAVE_TYPE_ERROR_FILE);
+        }
+
+        // 获取文件
+        File file = new File(fileAndDirTable.getURL());
+        if(!file.exists() || !file.canWrite()) {
+            return Result.error(NOT_FOUND_ERROR);
+        }
+
+        // 写入新内容 - 使用UTF-8编码
+        Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
+        return Result.success(SAVE_SUCCESS);
+
     }
 
 
