@@ -46,6 +46,7 @@
   import { ref, reactive } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/stores/auth'
+  import { ElMessage, ElNotification } from 'element-plus'
   
   const router = useRouter()
   const authStore = useAuthStore()
@@ -89,20 +90,26 @@
   const handleSubmit = async () => {
   try {
     Object.keys(form).forEach(validateField)
-    // await nextTick()
     const hasErrors = Object.values(errors).some(Boolean)
     if (hasErrors) {
       loginError.value = errors||'请正确填写所有必填字段'
       return
-    }    isSubmitting.value = true
+    }
+    isSubmitting.value = true
     loginError.value = null
     const response = await authStore.login(form)
     form.password = ''
-    
-    // 处理登录后的重定向
+    // 登录成功弹窗
+    // ElMessage.success('登录成功！')
+    ElNotification({
+      title: '登录成功',
+      type: 'success',
+      duration: 2000,
+      customClass: 'big-notification',
+      showClose: false
+    })
     const redirectPath = router.currentRoute.value.query.redirect || '/mainweb/resource'
     router.push(redirectPath)
-    
   } catch (error) {
     handleLoginError(error)
   } finally {
@@ -193,6 +200,12 @@ const handleLoginError = (error) => {
     color: #dc3545;
     font-size: 0.875rem;
     margin-top: 0.25rem;
+  }
+  
+  .big-notification {
+    min-width: 320px !important;
+    font-size: 1.2rem;
+    text-align: center;
   }
   
   </style>

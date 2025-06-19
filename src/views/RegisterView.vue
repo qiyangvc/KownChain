@@ -66,6 +66,7 @@
   import { ref, reactive } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/stores/auth'
+  import { ElMessage, ElNotification } from 'element-plus' // 新增
   
   const router = useRouter()
   const authStore = useAuthStore()
@@ -127,19 +128,22 @@
         registerError.value = '请正确填写所有必填字段'
         return
       }
-      
       isSubmitting.value = true
       const response = await authStore.register({
         username: form.username, 
         password: form.password, 
         email: form.email
       })
-      
-      console.log('注册响应:', response)
-      
-      // 修复响应处理逻辑
+      // 注册成功弹窗
       if (response && response.data) {
-        // 注册成功，跳转到登录页
+        // ElMessage.success('注册成功，请登录！')
+        ElNotification({
+        title: '注册成功',
+        type: 'success',
+        duration: 2000,
+        customClass: 'big-notification',
+        showClose: false
+      })
         router.push('/login')
       } else {
         registerError.value = '注册失败，请重试'
@@ -216,5 +220,10 @@
     color: #dc3545;
     font-size: 0.875rem;
     margin-top: 0.25rem;
+  }
+  .big-notification {
+    min-width: 320px !important;
+    font-size: 1.2rem;
+    text-align: center;
   }
   </style>
