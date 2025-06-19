@@ -55,7 +55,12 @@
           <div v-else-if="previewError" class="error-message">
             {{ previewError }}
           </div>
-          <div v-else class="markdown-content preview-content" v-html="renderedPreviewContent"></div>
+          <div
+            v-else
+            class="markdown-content preview-content"
+            v-html="renderedPreviewContent"
+            @click="handlePreviewContentClick"
+          ></div>
         </div>
         <!-- 预览面板和右侧内容之间的分隔线 -->
         <Resizer :onResize="handlePreviewResize" />
@@ -1055,6 +1060,32 @@ const handlePreviewResize = (deltaX) => {
   previewPanelWidth.value += deltaX;
   if (previewPanelWidth.value < minWidth) previewPanelWidth.value = minWidth;
   if (previewPanelWidth.value > maxPreviewWidth) previewPanelWidth.value = maxPreviewWidth;
+};
+
+
+const handlePreviewContentClick = async (event) => {
+  if (event.button !== 0) return; // 只处理左键
+  let target = event.target;
+  // 兼容 a 标签内有 span、strong 等嵌套
+  while (target && target.tagName !== 'A' && target !== event.currentTarget) {
+    target = target.parentNode;
+  }
+  if (target && target.tagName === 'A') {
+    const url = target.getAttribute('href');
+    // 外部链接放行
+    if (/^(http|https):\/\//.test(url)) return;
+    // 锚点放行
+    if (url && url.startsWith('#')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!url) return;
+    const file = findFileByUrl(url);
+    if (file) {
+      await loadPreview(file);
+    } else {
+      await loadPreviewContent(url);
+    }
+  }
 };
 
 // 挂载时添加全局点击事件监听
