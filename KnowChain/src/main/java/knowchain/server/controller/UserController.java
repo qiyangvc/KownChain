@@ -1,10 +1,12 @@
 package knowchain.server.controller;
 
 import knowchain.common.constant.JwtClaimsConstant;
+import knowchain.common.constant.MessageConstant;
 import knowchain.common.properties.JwtProperties;
 import knowchain.common.result.Result;
 import knowchain.common.utils.JwtUtil;
 import knowchain.pojo.DTO.UserDTO;
+import knowchain.pojo.DTO.UserRegisterDTO;
 import knowchain.pojo.VO.UserVO;
 import knowchain.pojo.entity.User;
 import knowchain.server.service.UserService;
@@ -17,9 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
-
-
-import static com.fasterxml.jackson.databind.type.LogicalType.Map;
 
 @RestController
 @RequestMapping("/user")
@@ -56,10 +55,21 @@ public class UserController {
                 .username(user.getUsername())
                 .mailbox(user.getMailbox())
                 .token(token)
-                .build();
-
-        return Result.success(userVO);
+                .build();        return Result.success(userVO);
     }
 
+    /**
+     * 注册
+     * @param userRegisterDTO
+     * @return
+     */
+    @PostMapping("/register")
+    public Result<String> register(@RequestBody UserRegisterDTO userRegisterDTO){
 
+        System.out.println("注册信息: " + userRegisterDTO);
+
+        userService.register(userRegisterDTO);
+
+        return Result.success(MessageConstant.REGISTER_SUCCESS);
+    }
 }

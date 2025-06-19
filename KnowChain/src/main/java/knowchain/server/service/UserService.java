@@ -1,6 +1,7 @@
 package knowchain.server.service;
 
 import knowchain.pojo.DTO.UserDTO;
+import knowchain.pojo.DTO.UserRegisterDTO;
 import knowchain.pojo.entity.User;
 
 public interface UserService {
@@ -12,4 +13,9 @@ public interface UserService {
      */
     User login(UserDTO userDTO);
 
+    /**
+     * 注册
+     * @param userRegisterDTO
+     */
+    void register(UserRegisterDTO userRegisterDTO);
 }

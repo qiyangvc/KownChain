@@ -113,7 +113,7 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>knowchain.server.KnowChainApplication</mainClass>
-                    <skip>true</skip>
+                    <skip>false</skip>
                 </configuration>
                 <executions>
                     <execution>

@@ -3,13 +3,19 @@ package knowchain.common.constant;
 /**
  * 信息提示常量类
  */
-public class MessageConstant {
-
-    /*
+public class MessageConstant {    /*
         用户管理常量
      */
     public static final String PASSWORD_ERROR = "密码错误";
     public static final String ACCOUNT_NOT_FOUND = "账号不存在";
+    public static final String USERNAME_EXIST = "用户名已存在";
+    public static final String EMAIL_EXIST = "邮箱已存在";
+    public static final String PASSWORD_MISMATCH = "两次输入的密码不一致";
+    public static final String REGISTER_SUCCESS = "注册成功";
+    public static final String USERNAME_EMPTY = "用户名不能为空";
+    public static final String PASSWORD_EMPTY = "密码不能为空";
+    public static final String EMAIL_EMPTY = "邮箱不能为空";
+    public static final String EMAIL_FORMAT_ERROR = "邮箱格式不正确";
 
     /*
         文件管理常量
