@@ -1,13 +1,13 @@
 <template>
-  <div class="file-node">
-    <div 
+  <div class="file-node" v-if="showFiles || isDirectory">    <div 
       class="node-content" 
       @click="handleNodeClick"
       @contextmenu="handleContextMenu"      :class="{ 
         'is-folder': isDirectory, 
-        'is-file': !isDirectory
+        'is-file': !isDirectory,
+        'selected': isSelected
       }"
-    >      <!-- 文件/文件夹图标 -->
+    ><!-- 文件/文件夹图标 -->
       <span class="icon">
         <i v-if="isDirectory" :class="expanded ? 'folder-open' : 'folder'"></i>
         <i v-else :class="getFileIcon(fileName)"></i>
@@ -21,6 +21,8 @@
         :key="child.fid || child.id || child.fname || child.fName"
         :node="child"
         :level="level + 1"
+        :show-files="showFiles"
+        :selected-node="selectedNode"
         @node-click="onChildClick"
         @node-context-menu="onChildContextMenu"
       />
@@ -39,6 +41,14 @@ const props = defineProps({
   level: {
     type: Number,
     default: 0
+  },
+  showFiles: {
+    type: Boolean,
+    default: true
+  },
+  selectedNode: {
+    type: Object,
+    default: null
   }
 });
 
@@ -54,6 +64,13 @@ const fileName = computed(() => {
 
 const isDirectory = computed(() => {
   return props.node.isDir || props.node.dir || false;
+});
+
+const isSelected = computed(() => {
+  if (!props.selectedNode) return false;
+  const nodeId = props.node.fid || props.node.id || props.node.URL;
+  const selectedId = props.selectedNode.fid || props.selectedNode.id || props.selectedNode.URL;
+  return nodeId === selectedId;
 });
 
 // 处理节点点击事件
@@ -184,5 +201,12 @@ const getFileIcon = (fileName) => {
 
 .file-default::before {
   content: "📎";
+}
+
+/* 选中状态样式 */
+.node-content.selected {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+  font-weight: 500;
 }
 </style>

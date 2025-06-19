@@ -133,6 +133,13 @@
           <span class="menu-icon">👁️</span> 预览文件
         </div>
         <div class="menu-divider"></div>
+        <div class="menu-item" @click="openRenameDialog">
+          <span class="menu-icon">✏️</span> 重命名
+        </div>
+        <div class="menu-item" @click="openMoveDialog">
+          <span class="menu-icon">📁</span> 移动到...
+        </div>
+        <div class="menu-divider"></div>
         <div class="menu-item danger" @click="deleteItem">
           <span class="menu-icon">🗑️</span> 删除文件
         </div>
@@ -147,47 +154,70 @@
           <span class="menu-icon">📄</span> 新建文件
         </div>
         <div v-if="selectedNode" class="menu-divider"></div>
+        <div v-if="selectedNode" class="menu-item" @click="openRenameDialog">
+          <span class="menu-icon">✏️</span> 重命名
+        </div>
+        <div v-if="selectedNode" class="menu-item" @click="openMoveDialog">
+          <span class="menu-icon">📁</span> 移动到...
+        </div>
+        <div v-if="selectedNode" class="menu-divider"></div>
         <div v-if="selectedNode" class="menu-item danger" @click="deleteItem">
           <span class="menu-icon">🗑️</span> 删除文件夹
         </div>
       </template>
-    </div>
-      <!-- 新建文件/文件夹对话框 -->
-    <div v-if="showCreateDialog" class="modal-overlay" @click="cancelCreate">
-      <div class="create-dialog" @click.stop>
-        <h3>{{ createDialogTitle }}</h3>
-        <input 
-          v-model="newItemName" 
-          :placeholder="createDialogPlaceholder"
-          @keyup.enter="confirmCreate"
-          @keyup.escape="cancelCreate"
-          ref="createInput"
-          class="create-input"
-        />
-        <div class="dialog-buttons">
-          <button @click="confirmCreate" class="btn-primary">创建</button>
-          <button @click="cancelCreate" class="btn-secondary">取消</button>
-        </div>
-        <div v-if="createError" class="error-message">{{ createError }}</div>
-      </div>
-    </div>
+    </div>    <!-- 新建文件/文件夹对话框 -->
+    <InputDialog
+      :show="showCreateDialog"
+      :title="createDialogTitle"
+      :placeholder="createDialogPlaceholder"
+      :error-message="createError"
+      confirm-text="创建"
+      @confirm="confirmCreate"
+      @cancel="cancelCreate"
+      @close="cancelCreate"
+    />
     
     <!-- 删除确认对话框 -->
-    <div v-if="showDeleteDialog" class="modal-overlay" @click="cancelDelete">
-      <div class="delete-dialog" @click.stop>
-        <h3>确认删除</h3>
-        <p v-if="deleteItemToDelete">
-          您确定要删除"{{ deleteItemToDelete.fName || deleteItemToDelete.fname || deleteItemToDelete.name }}"吗？
-          <br>
-          <span class="warning-text">此操作不可撤销！</span>
-        </p>
-        <div class="dialog-buttons">
-          <button @click="confirmDelete" class="btn-danger">删除</button>
-          <button @click="cancelDelete" class="btn-secondary">取消</button>
-        </div>
-        <div v-if="deleteError" class="error-message">{{ deleteError }}</div>
-      </div>
-    </div>
+    <BaseDialog
+      :show="showDeleteDialog"
+      title="确认删除"
+      :description="deleteDescription"
+      confirm-text="删除"
+      confirm-button-class="btn-danger"
+      dialog-class="danger"
+      :error-message="deleteError"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
+      @close="cancelDelete"
+    />
+
+    <!-- 重命名对话框 -->
+    <InputDialog
+      :show="showRenameDialog"
+      title="重命名"
+      :description="renameDescription"
+      placeholder="请输入新名称"
+      :initial-value="newName"
+      :error-message="renameError"
+      confirm-text="确认"
+      @confirm="confirmRename"
+      @cancel="cancelRename"
+      @close="cancelRename"
+    />
+
+    <!-- 移动对话框 -->
+    <TreeSelectDialog
+      :show="showMoveDialog"
+      title="移动文件"
+      :description="moveDescription"
+      :tree-data="resourceTree"
+      :exclude-node="moveItemToMove"
+      :error-message="moveError"
+      confirm-text="移动"
+      @confirm="confirmMove"
+      @cancel="cancelMove"
+      @close="cancelMove"
+    />
   </div>
 </template>
 
@@ -197,6 +227,9 @@ import { useAuthStore } from '@/stores/auth';
 import { marked } from 'marked'; 
 import FileTreeNode from '@/components/FileTreeNode.vue';
 import Resizer from '@/components/Resizer.vue';
+import BaseDialog from '@/components/BaseDialog.vue';
+import InputDialog from '@/components/InputDialog.vue';
+import TreeSelectDialog from '@/components/TreeSelectDialog.vue';
 import authApi from '@/api/auth';
 
 // 配置marked选项
@@ -225,17 +258,26 @@ const selectedNode = ref(null);
 
 // 新建文件/文件夹对话框状态
 const showCreateDialog = ref(false);
-const newItemName = ref('');
 const createDialogTitle = ref('');
 const createDialogPlaceholder = ref('');
 const createError = ref('');
-const createInput = ref(null);
 const isCreatingDirectory = ref(false);
 
 // 删除确认对话框状态
 const showDeleteDialog = ref(false);
 const deleteItemToDelete = ref(null);
 const deleteError = ref('');
+
+// 重命名对话框状态
+const showRenameDialog = ref(false);
+const renameItemToRename = ref(null);
+const newName = ref('');
+const renameError = ref('');
+
+// 移动对话框状态
+const showMoveDialog = ref(false);
+const moveItemToMove = ref(null);
+const moveError = ref('');
 
 // 预览状态
 const previewFile = ref(null);
@@ -297,6 +339,25 @@ const currentFileName = computed(() => {
 const previewFileName = computed(() => {
   if (!previewFile.value) return '';
   return previewFile.value.fName || previewFile.value.fname || '未知文件';
+});
+
+// 对话框描述文本
+const deleteDescription = computed(() => {
+  if (!deleteItemToDelete.value) return '';
+  const fileName = deleteItemToDelete.value.fName || deleteItemToDelete.value.fname || deleteItemToDelete.value.name || '未知文件';
+  return `您确定要删除"${fileName}"吗？\n此操作不可撤销！`;
+});
+
+const renameDescription = computed(() => {
+  if (!renameItemToRename.value) return '';
+  const fileName = renameItemToRename.value.fName || renameItemToRename.value.fname || renameItemToRename.value.name || '未知文件';
+  return `重命名: ${fileName}`;
+});
+
+const moveDescription = computed(() => {
+  if (!moveItemToMove.value) return '';
+  const fileName = moveItemToMove.value.fName || moveItemToMove.value.fname || moveItemToMove.value.name || '未知文件';
+  return `移动: ${fileName}`;
 });
 
 // 渲染Markdown内容
@@ -463,26 +524,17 @@ const openCreateDialog = (type, parentNode) => {
     createDialogTitle.value = '新建文件';
     createDialogPlaceholder.value = '请输入文件名（如：note.md）';
   }
-  
-  // 设置父节点（如果parentNode为null，则在根目录创建）
+    // 设置父节点（如果parentNode为null，则在根目录创建）
   selectedNode.value = parentNode;
   console.log('设置selectedNode为:', selectedNode.value);
   
-  newItemName.value = '';
   createError.value = '';
   showCreateDialog.value = true;
-  
-  // 等待DOM更新后聚焦输入框
-  nextTick(() => {
-    if (createInput.value) {
-      createInput.value.focus();
-    }
-  });
 };
 
 // 确认创建
-const confirmCreate = async () => {
-  if (!newItemName.value.trim()) {
+const confirmCreate = async (fileName) => {
+  if (!fileName || !fileName.trim()) {
     createError.value = '名称不能为空';
     return;
   }
@@ -512,13 +564,12 @@ const confirmCreate = async () => {
     }
     
     console.log('创建参数:', {
-      fileName: newItemName.value.trim(),
+      fileName: fileName.trim(),
       parentId: parentId,
       isDirectory: isCreatingDirectory.value
     });
-    
-    // 调用API创建文件或文件夹
-    await authApi.createFile(newItemName.value.trim(), parentId, isCreatingDirectory.value);
+      // 调用API创建文件或文件夹
+    await authApi.createFile(fileName.trim(), parentId, isCreatingDirectory.value);
     
     // 创建成功后刷新文件树
     await store.fetchResourceTree();
@@ -553,7 +604,6 @@ const confirmCreate = async () => {
 // 取消创建
 const cancelCreate = () => {
   showCreateDialog.value = false;
-  newItemName.value = '';
   createError.value = '';
 };
 
@@ -622,6 +672,139 @@ const cancelDelete = () => {
   showDeleteDialog.value = false;
   deleteItemToDelete.value = null;
   deleteError.value = '';
+};
+
+// 重命名文件/文件夹
+const openRenameDialog = () => {
+  if (!selectedNode.value) {
+    console.error('没有选中的节点');
+    return;
+  }
+  
+  console.log('准备重命名:', selectedNode.value);
+  renameItemToRename.value = selectedNode.value;
+  newName.value = selectedNode.value.fName || selectedNode.value.fname || selectedNode.value.name || '';
+  renameError.value = '';
+  showRenameDialog.value = true;
+  
+  // 关闭右键菜单
+  closeContextMenu();
+};
+
+// 确认重命名
+const confirmRename = async (newFileName) => {
+  if (!renameItemToRename.value) {
+    console.error('没有要重命名的项目');
+    return;
+  }
+  
+  if (!newFileName || !newFileName.trim()) {
+    renameError.value = '名称不能为空';
+    return;
+  }
+  
+  const originalName = renameItemToRename.value.fName || renameItemToRename.value.fname || renameItemToRename.value.name;
+  if (newFileName.trim() === originalName) {
+    // 名称没有变化，直接关闭对话框
+    cancelRename();
+    return;
+  }
+  
+  try {
+    renameError.value = '';
+    const itemId = renameItemToRename.value.fid || renameItemToRename.value.id || renameItemToRename.value.URL;
+    
+    console.log('重命名项目:', {
+      id: itemId,
+      oldName: originalName,
+      newName: newFileName.trim()
+    });
+    
+    // 调用重命名API
+    await authApi.renameFile(itemId, newFileName.trim());
+    
+    // 重命名成功后刷新文件树
+    await store.fetchResourceTree();
+    
+    // 关闭对话框
+    showRenameDialog.value = false;
+    renameItemToRename.value = null;
+    
+  } catch (error) {
+    console.error('重命名失败:', error);
+    renameError.value = error.response?.data?.message || error.message || '重命名失败';
+  }
+};
+
+// 取消重命名
+const cancelRename = () => {
+  showRenameDialog.value = false;
+  renameItemToRename.value = null;
+  renameError.value = '';
+};
+
+// 移动文件/文件夹
+const openMoveDialog = () => {
+  if (!selectedNode.value) {
+    console.error('没有选中的节点');
+    return;
+  }
+    console.log('准备移动:', selectedNode.value);
+  moveItemToMove.value = selectedNode.value;
+  moveError.value = '';
+  showMoveDialog.value = true;
+  
+  // 关闭右键菜单
+  closeContextMenu();
+};
+
+// 确认移动
+const confirmMove = async (targetNode) => {
+  if (!moveItemToMove.value) {
+    console.error('没有要移动的项目');
+    return;
+  }
+  
+  try {
+    moveError.value = '';
+    const itemId = moveItemToMove.value.fid || moveItemToMove.value.id || moveItemToMove.value.URL;
+    const targetId = targetNode ? (targetNode.fid || targetNode.id || targetNode.URL) : null;
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const userId = user.userid;
+    
+    console.log('移动项目:', {
+      id: itemId,
+      targetId: targetId,
+      userId: userId
+    });
+    
+    // 检查是否移动到自己或自己的子目录
+    if (targetId === itemId) {
+      moveError.value = '不能移动到自己';
+      return;
+    }
+    
+    // 调用移动API
+    await authApi.moveFile(itemId, targetId, userId);
+    
+    // 移动成功后刷新文件树
+    await store.fetchResourceTree();
+    
+    // 关闭对话框
+    showMoveDialog.value = false;
+    moveItemToMove.value = null;
+    
+  } catch (error) {
+    console.error('移动失败:', error);
+    moveError.value = error.response?.data?.message || error.message || '移动失败';
+  }
+};
+
+// 取消移动
+const cancelMove = () => {
+  showMoveDialog.value = false;
+  moveItemToMove.value = null;
+  moveError.value = '';
 };
 
 // 处理内容区域点击，用于链接预览
@@ -1261,120 +1444,6 @@ onUnmounted(() => {
   height: 1px;
   background-color: #e0e0e0;
   margin: 5px 0;
-}
-
-/* 新建文件/文件夹对话框样式 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.create-dialog {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  min-width: 400px;
-  max-width: 500px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.create-dialog h3 {
-  margin: 0 0 15px 0;
-  font-size: 18px;
-  color: #333;
-}
-
-.create-input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  margin-bottom: 15px;
-  box-sizing: border-box;
-}
-
-.create-input:focus {
-  outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-}
-
-.dialog-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.btn-primary, .btn-secondary {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-
-.btn-primary {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #45a049;
-}
-
-.btn-secondary {
-  background-color: #f5f5f5;
-  color: #333;
-  border: 1px solid #ddd;
-}
-
-.btn-secondary:hover {
-  background-color: #e9e9e9;
-}
-
-/* 删除对话框样式 */
-.btn-danger {
-  background-color: #dc3545;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-
-.btn-danger:hover {
-  background-color: #c82333;
-}
-
-.delete-dialog {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 400px;
-  width: 90%;
-}
-
-.delete-dialog h3 {
-  margin-top: 0;
-  color: #dc3545;
-}
-
-.warning-text {
-  color: #dc3545;
-  font-weight: bold;
-  font-size: 14px;
 }
 
 /* 修正Resizer在预览面板和右侧内容之间的显示层级 */

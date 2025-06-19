@@ -1,6 +1,7 @@
 // src/api/auth.js
 import apiClient from './config'
 import { mockApi } from '@/mock/mockApi'
+import axios from 'axios'
 
 // 使用模拟数据的标志 - 设置为false使用真实API
 const USE_MOCK_DATA = false;
@@ -145,6 +146,43 @@ export default {
     }
     try {
       const response = await apiClient.delete(`/file/deleteFileOrDir/${fileId}`)
+      return { data: response }
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // 重命名文件或文件夹
+  async renameFile(fileId, newName) {
+    if (USE_MOCK_DATA) {
+      return Promise.resolve({ data: '重命名成功' });
+    }
+    try {
+      const response = await apiClient.put('/file/renameFileOrDir', null, {
+        params: {
+          fid: fileId,
+          fName: newName
+        }
+      })
+      return { data: response }
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // 移动文件或文件夹
+  async moveFile(fileId, newParentId, userId) {
+    if (USE_MOCK_DATA) {
+      return Promise.resolve({ data: '移动成功' });
+    }
+    try {
+      const response = await apiClient.put('/file/changeFileOrDirPosition', null, {
+        params: {
+          fid: fileId,
+          parentFID: newParentId,
+          userID: userId
+        }
+      })
       return { data: response }
     } catch (error) {
       throw error
