@@ -2,47 +2,47 @@
   <div class="ddl-queue-container">
     <div class="ddl-header-row">
       <h2>DDL卡片队列</h2>
-      <button class="add-btn" @click="showModal = true" v-if="!adding">添加DDL卡片</button>
+      <button class="add-btn" @click="showModal = true">添加DDL卡片</button>
     </div>
     <div class="ddl-list-header">
       <div class="ddl-card-list">
         <div v-for="(card, idx) in sortedCards" :key="card.dID" class="ddl-card" :style="{ background: getCardColor(card.dEndTime) }">
-          <div class="ddl-title">{{ card.dTitle }}</div>
-          <div class="ddl-deadline">截止：{{ formatDeadline(card.dEndTime) }}</div>
-          <div class="ddl-remaining">剩余：{{ getRemainDetail(card.dEndTime) }}</div>
-          <div class="ddl-desc" v-if="card.dNotes">{{ card.dNotes }}</div>
-          <div class="ddl-actions">
-            <button
-              class="icon-btn edit-btn"
-              v-if="editId !== card.dID"
-              @click="startEdit(card)"
-              title="编辑"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M4 21h4l11-11-4-4L4 17v4z" stroke="#1976d2" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              <span class="btn-text">编辑</span>
-            </button>
-            <button
-              class="icon-btn delete-btn"
-              v-if="editId !== card.dID"
-              @click="deleteCard(card.dID)"
-              title="删除"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M6 6L18 18M6 18L18 6" stroke="#f44336" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              <span class="btn-text">删除</span>
-            </button>
-            <template v-if="editId === card.dID">
-              <input v-model="editCard.dTitle" placeholder="任务名称" class="edit-input" />
-              <input type="datetime-local" v-model="editCard.dEndTime" class="edit-input" />
-              <textarea v-model="editCard.dNotes" placeholder="备注（可选）" class="edit-textarea"></textarea>
-              <div class="edit-actions">
-                <button class="save-btn" @click="saveEdit(card.dID)">保存</button>
-                <button class="cancel-btn" @click="cancelEdit">取消</button>
-              </div>
-            </template>
+          <div v-if="!card.isEditing">
+            <div class="ddl-title">{{ card.dTitle }}</div>
+            <div class="ddl-deadline">截止：{{ formatDeadline(card.dEndTime) }}</div>
+            <div class="ddl-remaining">剩余：{{ getRemainDetail(card.dEndTime) }}</div>
+            <div class="ddl-desc" v-if="card.dNotes">{{ card.dNotes }}</div>
+            <div class="ddl-actions">
+              <button
+                class="icon-btn edit-btn"
+                @click="startEdit(card)"
+                title="编辑"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 21h4l11-11-4-4L4 17v4z" stroke="#1976d2" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span class="btn-text">编辑</span>
+              </button>
+              <button
+                class="icon-btn delete-btn"
+                @click="deleteCard(card.dId)"
+                title="删除"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 6L18 18M6 18L18 6" stroke="#f44336" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span class="btn-text">删除</span>
+              </button>
+            </div>
+          </div>
+          <div v-else>
+            <input v-model="card.dTitle" placeholder="任务名称" class="edit-input" />
+            <input type="datetime-local" v-model="card.dEndTime" class="edit-input" />
+            <textarea v-model="card.dNotes" placeholder="备注（可选）" class="edit-textarea"></textarea>
+            <div class="edit-actions">
+              <button class="save-btn" @click="saveEdit(card)">保存</button>
+              <button class="cancel-btn" @click="cancelEdit(card)">取消</button>
+            </div>
           </div>
         </div>
       </div>
@@ -81,9 +81,48 @@ const newCard = ref({
   dNotes: ''
 });
 
-const editId = ref(null);
-const editCard = ref({});
+// 移除全局编辑状态，为每个卡片添加独立编辑状态
+// const editId = ref(null);
+// const editCard = ref({});
 
+// 修改startEdit函数
+function startEdit(card) {
+  card.isEditing = true;
+}
+
+// 添加时间格式转换函数
+const formatDateTime = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+// 修改saveEdit函数
+async function saveEdit(card) {
+  if (!card.dTitle.trim() || !card.dEndTime) {
+    alert('请填写任务名称和截止时间');
+    return;
+  }
+  const formattedEndTime = formatDateTime(card.dEndTime);
+  console.log(formattedEndTime);
+  try {
+    await api.modifyDDL(card.dId, card.dTitle, card.dNotes, formattedEndTime);
+    await fetchDDLList();
+    card.isEditing = false;
+  } catch (error) {
+    console.error('修改DDL失败:', error);
+    alert('修改DDL失败，请稍后重试');
+  }
+}
+
+// 修改cancelEdit函数
+function cancelEdit(card) {
+  card.isEditing = false;
+}
 function closeModal() {
   showModal.value = false;
   newCard.value = { dTitle: '', dEndTime: '', dNotes: '' };
@@ -94,35 +133,20 @@ async function confirmAddCard() {
     alert('请填写任务名称和截止时间');
     return;
   }
-  const card = {
-    dTitle: newCard.value.dTitle,
-    dEndTime: newCard.value.dEndTime,
-    dNotes: newCard.value.dNotes,
-    uid: currentUserId.value
-  };
-  await api.addDDL(card);
-  await fetchDDLList();
-  closeModal();
+  const formattedEndTime = formatDateTime(newCard.value.dEndTime);
+    await api.addDDL({
+      dTitle: newCard.value.dTitle,
+      dNotes: newCard.value.dNotes,
+      uid: currentUserId.value,
+      dEndTime: newCard.value.dEndTime
+    });
+    await fetchDDLList();
+    closeModal();
 }
 
-function startEdit(card) {
-  editId.value = card.dID;
-  editCard.value = { ...card };
-}
-async function saveEdit(dID) {
-  if (!editCard.value.dTitle.trim() || !editCard.value.dEndTime) {
-    alert('请填写任务名称和截止时间');
-    return;
-  }
-  await api.modifyDDL(editCard.value); // 调用mockApi或后端接口修改
-  await fetchDDLList();                // 重新拉取列表，确保已修改
-  editId.value = null;
-}
-function cancelEdit() {
-  editId.value = null;
-}
-async function deleteCard(dID) {
-  await api.deleteDDL({ dID }); // 调用mockApi或后端接口删除
+async function deleteCard(dId) {
+  console.log('deleteCard dId:', dId);
+  await api.deleteDDL({ did: dId }); // 修改参数名以匹配后端要求
   await fetchDDLList();         // 重新拉取列表，确保已删除
 }
 
@@ -168,9 +192,42 @@ const sortedCards = computed(() => {
   return [...cards.value].sort((a, b) => new Date(a.dEndTime) - new Date(b.dEndTime));
 });
 
+// 定义键名映射表，将后端返回的小写键转换为驼峰式命名
+const keyMap = {
+  dcreatetime: 'dCreateTime',
+  did: 'dId',
+  dtitle: 'dTitle',
+  dnotes: 'dNotes',
+  dendtime: 'dEndTime'
+};
+
+// 转换对象键名为驼峰式
+function convertKeysToCamelCase(obj) {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  if (Array.isArray(obj)) return obj.map(item => convertKeysToCamelCase(item));
+  
+  const converted = {};
+  Object.keys(obj).forEach(key => {
+    const lowerKey = key.toLowerCase();
+    const camelKey = keyMap[lowerKey] || key;
+    converted[camelKey] = convertKeysToCamelCase(obj[key]);
+  });
+  return converted;
+}
+
 async function fetchDDLList() {
   const res = await api.getDDLByUid(currentUserId.value);
-  cards.value = res.data.list;
+  console.log('API Response:', res);
+  console.log('Current User ID:', currentUserId.value);
+  // 修正数据提取路径，API直接返回数组而非嵌套在data字段中
+  const rawData = Array.isArray(res) ? res : [];
+  console.log('Raw Data:', rawData);
+  const convertedData = rawData.map(item => ({
+    ...convertKeysToCamelCase(item),
+    isEditing: false // 为每个卡片添加独立的编辑状态
+  }));
+  cards.value = convertedData;
+  console.log('Converted Data:', convertedData);
 }
 
 onMounted(fetchDDLList);
