@@ -5,6 +5,8 @@ import knowchain.common.properties.JwtProperties;
 import knowchain.common.result.Result;
 import knowchain.common.utils.JwtUtil;
 import knowchain.pojo.DTO.UserDTO;
+import knowchain.pojo.DTO.UserRegisterDTO;
+import knowchain.pojo.DTO.ResetPasswordDTO;
 import knowchain.pojo.VO.UserVO;
 import knowchain.pojo.entity.User;
 import knowchain.server.service.UserService;
@@ -61,5 +63,39 @@ public class UserController {
         return Result.success(userVO);
     }
 
+    /**
+     * 用户注册
+     * @param userRegisterDTO
+     * @return
+     */
+    @PostMapping("/register")
+    public Result<String> register(@RequestBody UserRegisterDTO userRegisterDTO){
+        log.info("用户注册：{}", userRegisterDTO);
+        
+        try {
+            userService.register(userRegisterDTO);
+            return Result.success("注册成功");
+        } catch (Exception e) {
+            log.error("注册失败：{}", e.getMessage());
+            return Result.error("注册失败：" + e.getMessage());
+        }
+    }
 
+    /**
+     * 重置密码请求
+     * @param resetPasswordDTO
+     * @return
+     */
+    @PostMapping("/request-reset")
+    public Result<String> requestReset(@RequestBody ResetPasswordDTO resetPasswordDTO){
+        log.info("重置密码请求：{}", resetPasswordDTO);
+        
+        try {
+            userService.requestReset(resetPasswordDTO.getMailbox());
+            return Result.success("重置密码邮件已发送");
+        } catch (Exception e) {
+            log.error("重置密码请求失败：{}", e.getMessage());
+            return Result.error("重置密码请求失败：" + e.getMessage());
+        }
+    }
 }

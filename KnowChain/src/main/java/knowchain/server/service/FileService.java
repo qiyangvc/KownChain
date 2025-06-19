@@ -70,4 +70,26 @@ public interface FileService {
     Result<String> deleteFileOrDirectory(BigInteger fid) throws SecurityException;
 
 
+    /**
+     * 获取文件内容
+     * @param fileId 文件ID
+     * @return 文件内容
+     */
+    String getFileContent(BigInteger fileId) throws Exception;
+
+    /**
+     * 保存文件内容
+     * @param fileId 文件ID
+     * @param content 文件内容
+     * @return 保存结果
+     */
+    Result<String> saveFileContent(BigInteger fileId, String content) throws Exception;    /**
+     * 创建文件或文件夹
+     * @param userId 用户ID
+     * @param fileName 文件/文件夹名称
+     * @param parentId 父目录ID
+     * @param isDirectory 是否为目录
+     * @return 创建结果
+     */
+    Result<String> createFile(BigInteger userId, String fileName, BigInteger parentId, Boolean isDirectory) throws Exception;
 }

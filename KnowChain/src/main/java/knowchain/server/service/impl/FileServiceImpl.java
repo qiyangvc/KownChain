@@ -108,8 +108,6 @@ public class FileServiceImpl implements FileService {
 
         return Result.success(UPLOAD_SUCCESS);
     }
-
-
     @Override
     public Result<String> addDirectory(String name, BigInteger parentFID, BigInteger userID) throws SecurityException{
 
@@ -117,22 +115,23 @@ public class FileServiceImpl implements FileService {
         // 检查文件夹名是否为空
         if(name == null || name.trim().isEmpty()) {
             return Result.error(NAME_NULL_ERROR);
-//            return Result.error(ADD_DIR_FAILED);
         }
 
-        // 确保上传目录存在(不存在就新建文件夹)
-        // 文件根目录为上传文件根目录中的#{userid}文件夹
-        String uploadPath = FileConstant.UploadFilePATH + File.separator + userID.toString();
-        File uploadDir = new File(uploadPath);
-        if (!uploadDir.exists()) {
-            uploadDir.mkdirs();
+        // 确保用户文档目录存在
+        String userDocsPath = FileConstant.getUserDocsAbsolutePath(userID.longValue());
+        java.nio.file.Path userDirPath = java.nio.file.Paths.get(userDocsPath);
+        try {
+            if (!java.nio.file.Files.exists(userDirPath)) {
+                java.nio.file.Files.createDirectories(userDirPath);
+            }
+        } catch (Exception e) {
+            return Result.error("创建用户目录失败：" + e.getMessage());
         }
 
         // 检查是否已存在同名文件/文件夹
         if((parentFID != null && fileMapper.getByUIDandFNameandParentFID(userID, name, parentFID) != null)
                 || (parentFID == null && fileMapper.getByUIDandFNameandNULLParentFID(userID, name) != null)) {
             return Result.error(EXIST_ERROR);
-//            return Result.error(ADD_DIR_FAILED);
         }
 
         // 如果有父目录,检查父目录是否存在且是文件夹
@@ -140,28 +139,28 @@ public class FileServiceImpl implements FileService {
         if(parentFID != null) {
             if(currDir == null || !currDir.isDir()) {
                 return Result.error(FOLDER_NOT_FOUND);
-//                return Result.error(ADD_DIR_FAILED);
             }
         }
 
         /* 检查完毕,开始新建文件夹 */
-        // 在文件系统中创建对应的文件夹
-        String dirPath;
-        if(parentFID != null) {
-            dirPath = currDir.getURL() + File.separator + name;
+        try {            // 构建文件夹的相对路径
+            String relativePath = buildFileRelativePath(userID, parentFID, name);
+            String absolutePath = userDocsPath + relativePath;
+            
+            // 在文件系统中创建对应的文件夹
+            java.nio.file.Path dirPath = java.nio.file.Paths.get(absolutePath);
+            if (!java.nio.file.Files.exists(dirPath)) {
+                java.nio.file.Files.createDirectories(dirPath);
+            }
+
+            // 在数据库中创建文件夹记录，保存相对路径（去掉末尾的文件夹名，因为buildFileRelativePath已包含）
+            String folderRelativePath = FileConstant.getUserDocsPath(userID.longValue()) + relativePath;
+            fileMapper.insert(name, folderRelativePath, parentFID, true, userID);
+
+            return Result.success("文件夹创建成功");
+        } catch (Exception e) {
+            return Result.error("创建文件夹失败：" + e.getMessage());
         }
-        else {
-            dirPath = uploadDir.getAbsolutePath() + File.separator + name;
-        }
-
-        File dir = new File(dirPath);
-        dir.mkdirs();
-
-        // 在数据库中创建文件夹记录
-        fileMapper.insert(name, dirPath, parentFID, true, userID);
-
-        return Result.success();
-
     }
 
 
@@ -273,8 +272,7 @@ public class FileServiceImpl implements FileService {
     }
 
 
-    @Override
-    public Result<String> deleteFileOrDirectory(BigInteger fid) throws SecurityException {
+    @Override    public Result<String> deleteFileOrDirectory(BigInteger fid) throws SecurityException {
         // 获取文件/文件夹信息
         FileAndDirTable currFile = fileMapper.getByFID(fid);
         if(currFile == null) {
@@ -287,9 +285,35 @@ public class FileServiceImpl implements FileService {
         }
 
         // 删除文件系统中的实际文件/文件夹
-        File fileToDelete = new File(currFile.getURL());
-        if(fileToDelete.exists() && !fileToDelete.delete()) {
-            return Result.error(REMOVE_FAILED);
+        String relativePath = currFile.getURL();
+        if (relativePath != null && !relativePath.isEmpty()) {
+            try {
+                // 构建绝对路径
+                String absolutePath;
+                if (relativePath.startsWith("docs/users/")) {
+                    // 新的路径格式 - 使用项目根目录
+                    String currentDir = System.getProperty("user.dir");
+                    String projectRoot = new java.io.File(currentDir).getParentFile().getParent();
+                    absolutePath = projectRoot + "/" + relativePath;
+                } else {
+                    // 兼容旧的路径格式
+                    absolutePath = relativePath;
+                }
+                
+                java.nio.file.Path pathToDelete = java.nio.file.Paths.get(absolutePath);
+                if (java.nio.file.Files.exists(pathToDelete)) {
+                    if (currFile.isDir()) {
+                        // 删除文件夹及其所有内容
+                        deleteDirectoryRecursively(pathToDelete);
+                    } else {
+                        // 删除文件
+                        java.nio.file.Files.delete(pathToDelete);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("删除物理文件失败: " + e.getMessage());
+                // 继续删除数据库记录，不因为物理文件删除失败而中断
+            }
         }
 
         // 删除数据库记录
@@ -298,7 +322,34 @@ public class FileServiceImpl implements FileService {
         return Result.success(REMOVE_SUCCESS);
 
     }
+
     /**
+     * 递归删除目录及其所有内容
+     * @param dirPath 要删除的目录路径
+     * @throws Exception 删除失败时抛出异常
+     */
+    private void deleteDirectoryRecursively(java.nio.file.Path dirPath) throws Exception {
+        if (!java.nio.file.Files.exists(dirPath)) {
+            return;
+        }
+        
+        if (java.nio.file.Files.isDirectory(dirPath)) {
+            // 遍历目录中的所有文件和子目录
+            try (java.util.stream.Stream<java.nio.file.Path> paths = java.nio.file.Files.walk(dirPath)) {
+                paths.sorted(java.util.Comparator.reverseOrder()) // 先删除子项，再删除父项
+                     .forEach(path -> {
+                         try {
+                             java.nio.file.Files.delete(path);
+                         } catch (Exception e) {
+                             System.err.println("删除文件失败: " + path + ", 错误: " + e.getMessage());
+                         }
+                     });
+            }
+        } else {
+            // 如果是文件，直接删除
+            java.nio.file.Files.delete(dirPath);
+        }
+    }    /**
      * 递归删除文件夹及其内容, 用于deleteFileOrDirectory
      * @param dirFid 文件夹ID
      */
@@ -314,14 +365,248 @@ public class FileServiceImpl implements FileService {
                 }
 
                 // 删除文件系统中的实际文件/文件夹
-                File fileToDelete = new File(child.getURL());
-                if(fileToDelete.exists()) {
-                    fileToDelete.delete();
+                String relativePath = child.getURL();
+                if (relativePath != null && !relativePath.isEmpty()) {
+                    try {
+                        // 构建绝对路径
+                        String absolutePath;
+                        if (relativePath.startsWith("docs/users/")) {
+                            // 新的路径格式 - 使用项目根目录
+                            String currentDir = System.getProperty("user.dir");
+                            String projectRoot = new java.io.File(currentDir).getParentFile().getParent();
+                            absolutePath = projectRoot + "/" + relativePath;
+                        } else {
+                            // 兼容旧的路径格式
+                            absolutePath = relativePath;
+                        }
+                        
+                        java.nio.file.Path pathToDelete = java.nio.file.Paths.get(absolutePath);
+                        if (java.nio.file.Files.exists(pathToDelete)) {
+                            if (child.isDir()) {
+                                // 删除文件夹及其所有内容
+                                deleteDirectoryRecursively(pathToDelete);
+                            } else {
+                                // 删除文件
+                                java.nio.file.Files.delete(pathToDelete);
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.err.println("递归删除物理文件失败: " + e.getMessage());
+                    }
                 }
 
                 // 删除数据库记录
                 fileMapper.deleteByFid(child.getFID());
             }
+        }
+    }@Override
+    public String getFileContent(BigInteger fileId) throws Exception {
+        // 根据文件ID获取文件信息
+        FileAndDirTable fileInfo = fileMapper.getByFid(fileId);
+        if (fileInfo == null) {
+            throw new Exception("文件不存在");
+        }
+        
+        if (fileInfo.isDir()) {
+            throw new Exception("不能获取文件夹内容");
+        }
+        
+        // 读取文件内容
+        String relativePath = fileInfo.getURL();
+        if (relativePath == null || relativePath.isEmpty()) {
+            throw new Exception("文件路径为空");
+        }
+          try {
+            // 构建绝对路径
+            String absolutePath;
+            if (relativePath.startsWith("docs/users/")) {
+                // 新的路径格式 - 使用项目根目录
+                String currentDir = System.getProperty("user.dir");
+                String projectRoot = new java.io.File(currentDir).getParentFile().getParent();
+                absolutePath = projectRoot + "/" + relativePath;
+            } else {
+                // 兼容旧的路径格式
+                absolutePath = relativePath;
+            }
+            
+            java.nio.file.Path path = java.nio.file.Paths.get(absolutePath);
+            if (!java.nio.file.Files.exists(path)) {
+                throw new Exception("文件不存在：" + absolutePath);
+            }
+            
+            // 读取文件内容并返回
+            byte[] bytes = java.nio.file.Files.readAllBytes(path);
+            return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new Exception("读取文件内容失败：" + e.getMessage());
+        }
+    }    @Override
+    public Result<String> saveFileContent(BigInteger fileId, String content) throws Exception {
+        // 根据文件ID获取文件信息
+        FileAndDirTable fileInfo = fileMapper.getByFid(fileId);
+        if (fileInfo == null) {
+            return Result.error("文件不存在");
+        }
+        
+        if (fileInfo.isDir()) {
+            return Result.error("不能保存文件夹内容");
+        }
+        
+        // 保存文件内容
+        String relativePath = fileInfo.getURL();
+        if (relativePath == null || relativePath.isEmpty()) {
+            return Result.error("文件路径为空");
+        }
+          try {
+            // 构建绝对路径
+            String absolutePath;
+            if (relativePath.startsWith("docs/users/")) {
+                // 新的路径格式 - 使用项目根目录
+                String currentDir = System.getProperty("user.dir");
+                String projectRoot = new java.io.File(currentDir).getParentFile().getParent();
+                absolutePath = projectRoot + "/" + relativePath;
+            } else {
+                // 兼容旧的路径格式
+                absolutePath = relativePath;
+            }
+            
+            java.nio.file.Path path = java.nio.file.Paths.get(absolutePath);
+            
+            // 确保父目录存在
+            java.nio.file.Path parentPath = path.getParent();
+            if (parentPath != null && !java.nio.file.Files.exists(parentPath)) {
+                java.nio.file.Files.createDirectories(parentPath);
+            }
+            
+            java.nio.file.Files.write(path, content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return Result.success("文件保存成功");
+        } catch (Exception e) {
+            return Result.error("保存文件失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    public Result<String> createFile(BigInteger userId, String fileName, BigInteger parentId, Boolean isDirectory) throws Exception {
+        try {
+            // 检查文件名是否为空
+            if (fileName == null || fileName.trim().isEmpty()) {
+                return Result.error("文件名不能为空");
+            }
+            
+            // 检查同级目录下是否已存在同名文件
+            List<FileAndDirTable> existingFiles = fileMapper.getByUserIDAndParentFID(userId, parentId);
+            for (FileAndDirTable file : existingFiles) {
+                if (fileName.equals(file.getFName())) {
+                    return Result.error("同名文件已存在");
+                }
+            }
+            
+            // 创建文件/文件夹记录
+            FileAndDirTable newFile = new FileAndDirTable();
+            newFile.setFName(fileName);
+            newFile.setParentFID(parentId);
+            newFile.setUserID(userId);
+            newFile.setDir(isDirectory);            if (isDirectory) {
+                // 创建文件夹，也需要保存路径信息
+                String userDocsPath = FileConstant.getUserDocsAbsolutePath(userId.longValue());
+                java.nio.file.Path userDirPath = java.nio.file.Paths.get(userDocsPath);
+                
+                // 确保用户目录存在
+                if (!java.nio.file.Files.exists(userDirPath)) {
+                    java.nio.file.Files.createDirectories(userDirPath);
+                }
+                
+                // 根据parentId构建完整的文件夹路径
+                String relativePath = buildFileRelativePath(userId, parentId, fileName);
+                String fullPath = userDocsPath + relativePath;
+                
+                // 创建文件夹
+                java.nio.file.Path dirPath = java.nio.file.Paths.get(fullPath);
+                if (!java.nio.file.Files.exists(dirPath)) {
+                    java.nio.file.Files.createDirectories(dirPath);
+                }
+                
+                // 存储文件夹的相对路径
+                newFile.setURL(FileConstant.getUserDocsPath(userId.longValue()) + relativePath);
+            } else {
+                // 创建文件，使用docs/users/userid/目录结构
+                String userDocsPath = FileConstant.getUserDocsAbsolutePath(userId.longValue());
+                java.nio.file.Path userDirPath = java.nio.file.Paths.get(userDocsPath);
+                
+                // 确保用户目录存在
+                if (!java.nio.file.Files.exists(userDirPath)) {
+                    java.nio.file.Files.createDirectories(userDirPath);
+                }
+                
+                // 根据parentId构建完整的文件路径
+                String relativePath = buildFileRelativePath(userId, parentId, fileName);
+                String fullPath = userDocsPath + relativePath;
+                
+                // 确保父目录存在
+                java.nio.file.Path fileParentPath = java.nio.file.Paths.get(fullPath).getParent();
+                if (fileParentPath != null && !java.nio.file.Files.exists(fileParentPath)) {
+                    java.nio.file.Files.createDirectories(fileParentPath);
+                }
+                
+                java.nio.file.Path filePathObj = java.nio.file.Paths.get(fullPath);
+                
+                // 创建空文件
+                if (!java.nio.file.Files.exists(filePathObj)) {
+                    java.nio.file.Files.createFile(filePathObj);
+                }
+                
+                // 存储相对路径而不是绝对路径
+                newFile.setURL(FileConstant.getUserDocsPath(userId.longValue()) + relativePath);
+            }
+              // 保存到数据库
+            fileMapper.insertEntity(newFile);
+            
+            return Result.success(isDirectory ? "文件夹创建成功" : "文件创建成功");
+        } catch (Exception e) {
+            return Result.error("创建失败：" + e.getMessage());
+        }
+    }    /**
+     * 根据父目录ID构建文件的相对路径
+     * @param userId 用户ID
+     * @param parentId 父目录ID
+     * @param fileName 文件名
+     * @return 相对路径
+     */
+    private String buildFileRelativePath(BigInteger userId, BigInteger parentId, String fileName) {
+        if (parentId == null) {
+            // 根目录文件
+            return fileName;
+        }
+        
+        // 递归构建父目录路径
+        StringBuilder pathBuilder = new StringBuilder();
+        buildParentPath(parentId, pathBuilder);
+        pathBuilder.append(fileName);
+        
+        return pathBuilder.toString();
+    }
+    
+    /**
+     * 递归构建父目录路径
+     * @param parentId 父目录ID
+     * @param pathBuilder 路径构建器
+     */
+    private void buildParentPath(BigInteger parentId, StringBuilder pathBuilder) {
+        if (parentId == null) {
+            return;
+        }
+        
+        try {
+            FileAndDirTable parentDir = fileMapper.getByFid(parentId);
+            if (parentDir != null) {
+                // 递归构建父目录的路径
+                buildParentPath(parentDir.getParentFID(), pathBuilder);
+                // 添加当前目录名和分隔符
+                pathBuilder.append(parentDir.getFName()).append("/");
+            }
+        } catch (Exception e) {
+            // 如果查询失败，忽略错误
+            System.err.println("Failed to build parent path for parentId: " + parentId);
         }
     }
 }

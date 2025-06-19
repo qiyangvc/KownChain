@@ -69,5 +69,17 @@ public interface FileMapper {
     void updateParentFID(@Param("pid") BigInteger parentFID,
                      @Param("fid") BigInteger fid);
 
+    // 根据fId获取文件信息（别名方法）
+    default FileAndDirTable getByFid(BigInteger fid) {
+        return getByFID(fid);
+    }
 
+    // 根据用户ID和父目录ID获取文件列表
+    @Select("SELECT * FROM fileanddirtable WHERE userID = #{userid} AND (parentFID = #{parentid} OR (#{parentid} IS NULL AND parentFID IS NULL))")
+    List<FileAndDirTable> getByUserIDAndParentFID(@Param("userid") BigInteger userid, 
+                                                  @Param("parentid") BigInteger parentid);
+
+    // 插入文件记录（使用实体对象）
+    @Insert("INSERT INTO fileanddirtable (fName, URL, parentFID, isDir, userID) VALUES (#{fName}, #{URL}, #{parentFID}, #{isDir}, #{userID})")
+    void insertEntity(FileAndDirTable file);
 }

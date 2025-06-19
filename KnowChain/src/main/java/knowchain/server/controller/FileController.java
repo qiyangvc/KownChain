@@ -1,6 +1,7 @@
 package knowchain.server.controller;
 
 import knowchain.common.result.Result;
+import knowchain.pojo.DTO.FileSaveDTO;
 import knowchain.pojo.VO.FileAndDirItem;
 import knowchain.pojo.entity.FileAndDirTable;
 import knowchain.server.mapper.FileMapper;
@@ -10,9 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.FileInputStream;
 import java.math.BigInteger;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -224,5 +227,57 @@ public class FileController {
 
     }
 
+    /**
+     * 获取文件内容
+     * @param fileId 文件ID
+     * @return 文件内容
+     */
+    @GetMapping("/content/{fileId}")
+    public Result<String> getFileContent(@PathVariable BigInteger fileId) {
+        try {
+            String content = fileService.getFileContent(fileId);
+            return Result.success(content);
+        } catch (Exception e) {
+            log.error("获取文件内容失败：{}", e.getMessage());
+            return Result.error("获取文件内容失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 保存文件内容
+     * @param fileSaveDTO 文件保存DTO
+     * @return 保存结果
+     */
+    @PostMapping("/save")
+    public Result<String> saveFileContent(@RequestBody FileSaveDTO fileSaveDTO) {
+        try {
+            return fileService.saveFileContent(fileSaveDTO.getFileId(), fileSaveDTO.getContent());
+        } catch (Exception e) {
+            log.error("保存文件内容失败：{}", e.getMessage());
+            return Result.error("保存文件内容失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 创建文件或文件夹
+     * @param userId 用户ID
+     * @param fileName 文件/文件夹名称
+     * @param parentId 父目录ID
+     * @param isDirectory 是否为目录
+     * @return 创建结果
+     */
+    @PostMapping("/create")
+    public Result<String> createFile(
+            @RequestParam("userId") BigInteger userId,
+            @RequestParam("fileName") String fileName,
+            @RequestParam(value = "parentId", required = false) BigInteger parentId,
+            @RequestParam("isDirectory") Boolean isDirectory) {
+        try {
+            return fileService.createFile(userId, fileName, parentId, isDirectory);
+        } catch (Exception e) {
+            log.error("创建文件失败：{}", e.getMessage());
+            return Result.error("创建文件失败：" + e.getMessage());
+        }
+    }
 
 }
