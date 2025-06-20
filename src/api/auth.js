@@ -9,6 +9,7 @@ const USE_MOCK_DATA = false;
 export default {
   // 登录
   async login(credentials) {
+    console.log('登录请求数据:', credentials);
     if (USE_MOCK_DATA) {
       return mockApi.login(credentials);
     }
@@ -201,38 +202,88 @@ export default {
     return Promise.resolve({ message: '登出成功' })
   },
     // 创建DDL
-  addDDL(data) {
+  async addDDL(data) {
+    console.log('添加DDL请求数据:', data);
     if (USE_MOCK_DATA) {
       return mockApi.addDDL(data);
     }
-    return axios.post('/addDDL', data);
+    try {
+      const response = await apiClient.post('/ddl/addDDL', null, {
+        params:{
+          title: data.dTitle,
+          notes: data.dNotes,
+          userid: data.uid,
+          endtime: data.dEndTime
+        }
+      });
+      console.log('添加DDL响应:', response);
+      return { data: response };
+    } catch (error) {
+      throw error;
+    }
   },
 
   // 删除DDL
-  deleteDDL(data) {
+  async deleteDDL(data){
     if (USE_MOCK_DATA) {
       return mockApi.deleteDDL(data);
     }
-    return axios.put('/deleteDDL', data);
+    try {
+      const response = await apiClient.delete(`/ddl/deleteDDL`,{
+        params:{
+          did: data
+        }
+      });
+      return { data: response };
+    } catch (error) {
+      throw error;
+    }
   },
 
   // 修改DDL
-  modifyDDL(data) {
+  async modifyDDL(data){
     if (USE_MOCK_DATA) {
       return mockApi.modifyDDL(data);
     }
-    return axios.put('/modifyDDL', data);
+    try {
+      const response = await apiClient.put('/ddl/modifyDDL', null,{
+        params:{
+          did: data.did,
+          title: data.dTitle,
+          notes: data.dNotes,
+          endtime: data.dEndTime
+        }
+      });
+      return { data: response };
+    } catch (error) {
+      throw error;
+    }
   },
 
   // 获取DDL队列
-  getDDLByUid(uid) {
+  async getDDLByUid(uid) {
     if (USE_MOCK_DATA) {
       return mockApi.getDDLByUid(uid);
     }
-    return axios.get('/getDDLByUid', { params: { uid } });
+    try {
+      console.log('获取DDL请求参数:', uid);
+      const response = await apiClient.get(`/ddl/getDDLByUid`,{
+        params:{
+          userid: uid
+        }
+      });
+      console.log('获取DDL响应:', response);
+      if (response.data && response.data.code !== 200) {
+        console.error('获取DDL队列失败，错误码:', response.data.code, '错误信息:', response.data.message);
+      }
+      return { data: response };
+    } catch (error) {
+      console.error('获取DDL队列时发生异常:', error);
+      throw error;
+    }
   },
   // 新增待办
-  addTodo(data) {
+  async addTodo(data){
     if (USE_MOCK_DATA) {
       return mockApi.addTodo(data);
     }

@@ -3,7 +3,7 @@
     <!-- 左侧功能选择区域 -->
     <div class="sidebar" :class="{ 'collapsed': isSidebarCollapsed }">
       <div class="toggle-btn" @click="toggleSidebar">
-        <i class="toggle-icon" :class="isSidebarCollapsed ? 'icon-expand' : 'icon-collapse'"></i>
+        <i class="toggle-icon" :class="isSidebarCollapsed ? 'icon-expand' : 'icon-collapse'"/>
       </div>
       <nav>
         <router-link to="/mainweb/resource" class="nav-item sidebar-btn" :title="isSidebarCollapsed ? '资源管理' : ''">
@@ -23,26 +23,24 @@
           <span v-else class="icon">📊</span>
         </router-link>
       </nav>
-      
       <!-- 用户信息和登出 -->
       <div class="user-section">
-        <div v-if="!isSidebarCollapsed && authStore.user" class="user-info">
-          <span class="username">{{ authStore.user.username }}</span>
-        </div>
+        <button class="sidebar-btn user-info-btn" :class="{ 'collapsed': isSidebarCollapsed }">
+          <span v-if="!isSidebarCollapsed && authStore.user" class="btn-text">{{ authStore.user.username }}</span>
+          <span v-else-if="authStore.user" class="icon">{{ authStore.user.username.charAt(0) }}</span>
+        </button>
         <button @click="handleLogout" class="logout-btn sidebar-btn" :title="isSidebarCollapsed ? '登出' : ''">
           <span v-if="!isSidebarCollapsed" class="btn-text">登出</span>
           <span v-else class="icon">🚪</span>
         </button>
       </div>
     </div>
-    
     <!-- 右侧工作区 -->
     <div class="content-area">
-      <router-view></router-view>
+      <router-view/>
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -63,15 +61,11 @@ const toggleSidebar = () => {
 const handleLogout = async () => {
   try {
     console.log('开始执行登出操作...')
-    
     // 执行登出操作
     await authStore.logout()
-    
     console.log('登出成功，准备跳转到登录页面')
-    
     // 跳转到登录页面
     await router.push('/login')
-    
     console.log('已跳转到登录页面')
   } catch (error) {
     console.error('登出过程中发生错误:', error)
@@ -80,7 +74,6 @@ const handleLogout = async () => {
   }
 };
 </script>
-
 <style scoped>
 /* 重置页面边距 */
 * {
@@ -243,6 +236,10 @@ const handleLogout = async () => {
   margin-top: auto;
   padding: 0 0 15px 0;
   border-top: 1px solid #e0e0e0;
+}
+
+.user-info-btn {
+  margin-top: 18px;
 }
 
 .user-info {

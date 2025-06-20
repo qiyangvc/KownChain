@@ -110,7 +110,7 @@ async function saveEdit(card) {
   const formattedEndTime = formatDateTime(card.dEndTime);
   console.log(formattedEndTime);
   try {
-    await api.modifyDDL(card.dId, card.dTitle, card.dNotes, formattedEndTime);
+    await api.modifyDDL({ did: card.dId, dTitle: card.dTitle, dNotes: card.dNotes, dEndTime: formattedEndTime });
     await fetchDDLList();
     card.isEditing = false;
   } catch (error) {
@@ -134,7 +134,7 @@ async function confirmAddCard() {
     return;
   }
   const formattedEndTime = formatDateTime(newCard.value.dEndTime);
-    await api.addDDL({
+    const response = await api.addDDL({
       dTitle: newCard.value.dTitle,
       dNotes: newCard.value.dNotes,
       uid: currentUserId.value,
@@ -146,7 +146,7 @@ async function confirmAddCard() {
 
 async function deleteCard(dId) {
   console.log('deleteCard dId:', dId);
-  await api.deleteDDL({ did: dId }); // 修改参数名以匹配后端要求
+  await api.deleteDDL(dId); // 修改参数名以匹配后端要求
   await fetchDDLList();         // 重新拉取列表，确保已删除
 }
 
@@ -216,7 +216,7 @@ function convertKeysToCamelCase(obj) {
 }
 
 async function fetchDDLList() {
-  const res = await api.getDDLByUid(currentUserId.value);
+  const { data: res } = await api.getDDLByUid(currentUserId.value);
   console.log('API Response:', res);
   console.log('Current User ID:', currentUserId.value);
   // 修正数据提取路径，API直接返回数组而非嵌套在data字段中

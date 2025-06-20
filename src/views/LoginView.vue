@@ -97,6 +97,7 @@
     }
     isSubmitting.value = true
     loginError.value = null
+    console.log(form);
     const response = await authStore.login(form)
     form.password = ''
     // 登录成功弹窗
