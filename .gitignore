@@ -1,0 +1,43 @@
+# KnowChain 项目 .gitignore
+
+# 用户文档目录（包含敏感用户数据）
+docs/
+
+# IDE 配置文件
+.vscode/
+.idea/
+*.iml
+
+# 构建输出
+backend/KnowChain/target/
+frontend/dist/
+frontend/node_modules/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.bak
+
+# Java 编译文件
+*.class
+
+# Maven 本地配置
+backend/KnowChain/.mvn/
+
+# Node.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 环境配置文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
