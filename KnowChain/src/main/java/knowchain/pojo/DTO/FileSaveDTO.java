@@ -6,7 +6,8 @@ import java.io.Serializable;
 import java.math.BigInteger;
 
 @Data
-public class SaveFileDTO implements Serializable {
+public class FileSaveDTO implements Serializable {
+
     private BigInteger fileId;
     private String content;
 }

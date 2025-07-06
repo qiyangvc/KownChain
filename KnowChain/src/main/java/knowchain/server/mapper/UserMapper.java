@@ -19,16 +19,16 @@ public interface UserMapper {
 
     /**
      * 根据邮箱查询用户
-     * @param mailbox
+     * @param email
      * @return
      */
-    @Select("select * from usertable where mailbox = #{mailbox}")
-    User getByMailbox(@Param("mailbox") String mailbox);
+    @Select("select * from usertable where mailbox = #{email}")
+    User getByEmail(@Param("email") String email);
 
     /**
      * 插入新用户
      * @param user
      */
-    @Insert("insert into usertable (username, password, mailbox) values (#{username}, #{password}, #{mailbox})")
+    @Insert("insert into usertable(username, password, mailbox) values(#{username}, #{password}, #{mailbox})")
     void insert(User user);
 }

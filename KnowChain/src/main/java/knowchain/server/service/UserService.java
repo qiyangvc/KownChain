@@ -14,8 +14,16 @@ public interface UserService {
     User login(UserDTO userDTO);
 
     /**
-     * 注册
+     * 用户注册
      * @param userRegisterDTO
+     * @return
      */
     void register(UserRegisterDTO userRegisterDTO);
+
+    /**
+     * 重置密码请求
+     * @param mailbox
+     * @return
+     */
+    void requestReset(String mailbox);
 }

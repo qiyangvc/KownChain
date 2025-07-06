@@ -106,14 +106,12 @@
                     <target>17</target>
                     <encoding>UTF-8</encoding>
                 </configuration>
-            </plugin>
-            <plugin>
+            </plugin>            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>knowchain.server.KnowChainApplication</mainClass>
-                    <skip>false</skip>
                 </configuration>
                 <executions>
                     <execution>

@@ -1,12 +1,12 @@
 package knowchain.server.controller;
 
 import knowchain.common.constant.JwtClaimsConstant;
-import knowchain.common.constant.MessageConstant;
 import knowchain.common.properties.JwtProperties;
 import knowchain.common.result.Result;
 import knowchain.common.utils.JwtUtil;
 import knowchain.pojo.DTO.UserDTO;
 import knowchain.pojo.DTO.UserRegisterDTO;
+import knowchain.pojo.DTO.ResetPasswordDTO;
 import knowchain.pojo.VO.UserVO;
 import knowchain.pojo.entity.User;
 import knowchain.server.service.UserService;
@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
+
+
+import static com.fasterxml.jackson.databind.type.LogicalType.Map;
 
 @RestController
 @RequestMapping("/user")
@@ -55,21 +58,44 @@ public class UserController {
                 .username(user.getUsername())
                 .mailbox(user.getMailbox())
                 .token(token)
-                .build();        return Result.success(userVO);
+                .build();
+
+        return Result.success(userVO);
     }
 
     /**
-     * 注册
+     * 用户注册
      * @param userRegisterDTO
      * @return
      */
     @PostMapping("/register")
     public Result<String> register(@RequestBody UserRegisterDTO userRegisterDTO){
+        log.info("用户注册：{}", userRegisterDTO);
+        
+        try {
+            userService.register(userRegisterDTO);
+            return Result.success("注册成功");
+        } catch (Exception e) {
+            log.error("注册失败：{}", e.getMessage());
+            return Result.error("注册失败：" + e.getMessage());
+        }
+    }
 
-        System.out.println("注册信息: " + userRegisterDTO);
-
-        userService.register(userRegisterDTO);
-
-        return Result.success(MessageConstant.REGISTER_SUCCESS);
+    /**
+     * 重置密码请求
+     * @param resetPasswordDTO
+     * @return
+     */
+    @PostMapping("/request-reset")
+    public Result<String> requestReset(@RequestBody ResetPasswordDTO resetPasswordDTO){
+        log.info("重置密码请求：{}", resetPasswordDTO);
+        
+        try {
+            userService.requestReset(resetPasswordDTO.getMailbox());
+            return Result.success("重置密码邮件已发送");
+        } catch (Exception e) {
+            log.error("重置密码请求失败：{}", e.getMessage());
+            return Result.error("重置密码请求失败：" + e.getMessage());
+        }
     }
 }

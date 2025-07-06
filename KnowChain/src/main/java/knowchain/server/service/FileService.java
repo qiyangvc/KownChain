@@ -3,8 +3,6 @@ package knowchain.server.service;
 import knowchain.common.result.Result;
 import knowchain.pojo.VO.FileAndDirItem;
 import knowchain.pojo.entity.FileAndDirTable;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -34,26 +32,14 @@ public interface FileService {
 
 
     /**
-     * 新建文件或文件夹
-     * @param name 文件/文件夹名称
-     * @param parentFID 父目录ID
-     * @param userID 用户ID
-     * @param isDir 是否是文件夹
-     * @return 创建结果
-     * @apiNote 新建文件仅支持.md格式
+     * 新建文件夹
+     * @param name 文件夹名
+     * @param parentFID 父目录fID
+     * @return 创建文件夹是否成功结果
      */
-    Result<String> addFileOrDirectory(String name,
-                                      BigInteger parentFID,
-                                      BigInteger userID,
-                                      boolean isDir) throws SecurityException;
-
-
-    /**
-     * 保存文件
-     *
-     */
-    Result<String> saveFile(BigInteger fileId,
-                            String content) throws IOException;
+    Result<String> addDirectory(String name,
+                                BigInteger parentFID,
+                                BigInteger userID) throws SecurityException;
 
 
     /**
@@ -84,4 +70,26 @@ public interface FileService {
     Result<String> deleteFileOrDirectory(BigInteger fid) throws SecurityException;
 
 
+    /**
+     * 获取文件内容
+     * @param fileId 文件ID
+     * @return 文件内容
+     */
+    String getFileContent(BigInteger fileId) throws Exception;
+
+    /**
+     * 保存文件内容
+     * @param fileId 文件ID
+     * @param content 文件内容
+     * @return 保存结果
+     */
+    Result<String> saveFileContent(BigInteger fileId, String content) throws Exception;    /**
+     * 创建文件或文件夹
+     * @param userId 用户ID
+     * @param fileName 文件/文件夹名称
+     * @param parentId 父目录ID
+     * @param isDirectory 是否为目录
+     * @return 创建结果
+     */
+    Result<String> createFile(BigInteger userId, String fileName, BigInteger parentId, Boolean isDirectory) throws Exception;
 }

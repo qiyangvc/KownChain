@@ -8,7 +8,10 @@ import java.io.Serializable;
 public class UserRegisterDTO implements Serializable {
 
     private String username;
-    private String password;
-    private String confirmPassword;
+    
+    private String password; // 注意：前端已验证长度>=6
+    
     private String mailbox;
+    
+    private String confirmPassword;
 }

@@ -3,19 +3,14 @@ package knowchain.common.constant;
 /**
  * 信息提示常量类
  */
-public class MessageConstant {    /*
+public class MessageConstant {
+
+    /*
         用户管理常量
      */
     public static final String PASSWORD_ERROR = "密码错误";
     public static final String ACCOUNT_NOT_FOUND = "账号不存在";
-    public static final String USERNAME_EXIST = "用户名已存在";
-    public static final String EMAIL_EXIST = "邮箱已存在";
-    public static final String PASSWORD_MISMATCH = "两次输入的密码不一致";
-    public static final String REGISTER_SUCCESS = "注册成功";
-    public static final String USERNAME_EMPTY = "用户名不能为空";
-    public static final String PASSWORD_EMPTY = "密码不能为空";
-    public static final String EMAIL_EMPTY = "邮箱不能为空";
-    public static final String EMAIL_FORMAT_ERROR = "邮箱格式不正确";
+
 
     /*
         文件管理常量
@@ -40,6 +35,7 @@ public class MessageConstant {    /*
     public static final String REMOVE_SUCCESS = "删除成功";
     public static final String SAVE_SUCCESS = "文件保存成功";
 
+
     /*
         DDL管理常量
      */
@@ -53,9 +49,24 @@ public class MessageConstant {    /*
     public static final String DDL_DELETE_SUCCESS = "DDL删除成功";
     public static final String DDL_MODIFY_SUCCESS = "DDL修改成功";
 
+
+    /*
+        待办管理常量
+     */
+    // 不成功
+    public static final String TDDATE_EMPTY_ERROR = "日期不能为空";
+    public static final String TDCONTENT_EMPTY_ERROR = "任务内容不能为空";
+    public static final String TDID_EMPTY_ERROR = "任务ID不能为空";
+    public static final String TODO_NOT_FOUND = "待办不存在";
+    // 成功
+    public static final String TODO_CREATE_SUCCESS = "新增待办成功";
+    public static final String TODO_DELETE_SUCCESS = "删除待办成功";
+    public static final String TODO_MODIFY_SUCCESS = "修改待办成功";
+
+
     /*
         其他常量
      */
-    public static final String TIMESTAMP_FORMAT_ERROR = "TimeStamp日期格式错误,请使用 yyyy-MM-dd HH:mm:ss 格式";
-
+    public static final String TIMESTAMP_FORMAT_ERROR = "TimeStamp日期格式错误,请使用 yyyy-MM-ddTHH:mm:ss 格式";
+    public static final String ARGUMENT_EMPTY_ERROR = "参数不能为空";
 }
