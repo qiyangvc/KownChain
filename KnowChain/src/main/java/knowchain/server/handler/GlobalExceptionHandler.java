@@ -19,7 +19,13 @@ public class GlobalExceptionHandler {
      * @return
      */
     @ExceptionHandler
-    public Result exceptionHandler(BaseException ex){
+    public static Result exceptionHandler(BaseException ex){
+        log.error("异常信息：{}", ex.getMessage());
+        return Result.error(ex.getMessage());
+    }
+
+    @ExceptionHandler
+    public static Result exceptionHandler(Exception ex){
         log.error("异常信息：{}", ex.getMessage());
         return Result.error(ex.getMessage());
     }

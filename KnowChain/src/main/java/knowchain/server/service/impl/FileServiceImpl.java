@@ -108,6 +108,8 @@ public class FileServiceImpl implements FileService {
 
         return Result.success(UPLOAD_SUCCESS);
     }
+
+
     @Override
     public Result<String> addDirectory(String name, BigInteger parentFID, BigInteger userID) throws SecurityException{
 
