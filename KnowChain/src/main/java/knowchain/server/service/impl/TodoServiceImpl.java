@@ -27,7 +27,7 @@ public class TodoServiceImpl implements TodoService {
                                       String content,
                                       String startTime,
                                       String endTime,
-                                      BigInteger userid) {
+                                      BigInteger userid) throws IllegalArgumentException{
         // 参数校验
         if (date == null || date.trim().isEmpty()) {
             return Result.error(TDDATE_EMPTY_ERROR);
@@ -72,7 +72,7 @@ public class TodoServiceImpl implements TodoService {
                                          String date,
                                          String content,
                                          String startTime,
-                                         String endTime) {
+                                         String endTime) throws IllegalArgumentException{
         if (tdid == null) {
             return Result.error(TDID_EMPTY_ERROR);
         }
@@ -101,7 +101,8 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
-    public Result<List<TODOItem>> getTodo(BigInteger userid, String date) {
+    public Result<List<TODOItem>> getTodo(BigInteger userid, String date)
+            throws IllegalArgumentException, UnsupportedOperationException, ClassCastException, NullPointerException{
         if (userid == null || date == null || date.trim().isEmpty()) {
             return Result.error(ARGUMENT_EMPTY_ERROR);
         }
